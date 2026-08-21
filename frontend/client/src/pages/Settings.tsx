@@ -124,7 +124,9 @@ export default function Settings() {
       const result = await syncRazorpay();
       await refreshStatus();
       toast.success("Razorpay synchronized", {
-        description: result.records
+        description: result.warnings?.length
+          ? `${result.records?.payments ?? 0} payments imported. ${result.warnings.join(" ")}.`
+          : result.records
           ? `${result.records.payments} payments, ${result.records.refunds} refunds and ${result.records.settlements} settlements processed.`
           : `${result.records_processed} Razorpay record${result.records_processed === 1 ? "" : "s"} processed.`,
       });
@@ -148,10 +150,20 @@ export default function Settings() {
           webhook_secret: result.webhook_secret,
         });
       }
+      let initialSync = null;
+      try {
+        initialSync = await syncRazorpay();
+      } catch (reason: any) {
+        toast.warning("Razorpay connected, but the first import needs attention", {
+          description: reason?.response?.data?.detail ?? "Use Sync now to retry the import.",
+        });
+      }
       await Promise.all([refreshStatus(), refreshSession()]);
       toast.success("Razorpay Test Mode connected", {
-        description: result.webhook_secret
-          ? "Copy the webhook URL and secret below, then configure them in Razorpay."
+        description: initialSync
+          ? `${initialSync.records?.payments ?? 0} existing payment${initialSync.records?.payments === 1 ? "" : "s"} imported. Copy the webhook details below for new events.`
+          : result.webhook_secret
+          ? "Copy the webhook URL and secret below, then use Sync now to import existing payments."
           : "The encrypted credentials were updated successfully.",
       });
     } catch (reason: any) {

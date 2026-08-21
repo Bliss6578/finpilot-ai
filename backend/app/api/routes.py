@@ -136,8 +136,17 @@ async def sync_razorpay(
         connection = await refresh_oauth_connection(db, settings, connection)
         service = RazorpayService(settings, connection)
         payments = await service.fetch_payments()
-        refunds = await service.fetch_refunds()
-        settlements = await service.fetch_settlements()
+        warnings: list[str] = []
+        try:
+            refunds = await service.fetch_refunds()
+        except (httpx.HTTPError, ValueError):
+            refunds = []
+            warnings.append("Refund history is unavailable for this Razorpay Test account")
+        try:
+            settlements = await service.fetch_settlements()
+        except (httpx.HTTPError, ValueError):
+            settlements = []
+            warnings.append("Settlement history is unavailable for this Razorpay Test account")
         for payment in payments:
             upsert_payment(db, payment, context.business.id)
         for refund in refunds:
@@ -157,6 +166,7 @@ async def sync_razorpay(
                 "refunds": len(refunds),
                 "settlements": len(settlements),
             },
+            "warnings": warnings,
             "synced_at": run.finished_at.isoformat(),
         }
     except (httpx.HTTPError, ValueError) as exc:

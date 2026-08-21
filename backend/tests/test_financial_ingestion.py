@@ -3,6 +3,7 @@ import hmac
 import json
 from datetime import datetime, timezone
 
+import httpx
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -196,6 +197,98 @@ def test_refund_and_settlement_webhooks_are_idempotent_and_tenant_scoped(monkeyp
                 assert db.scalar(select(func.count()).select_from(Settlement)) == 1
                 assert db.scalar(select(func.count()).select_from(WebhookEvent)) == 2
                 assert db.scalar(select(WebhookEvent.status).where(WebhookEvent.event_type == "refund.processed")) == "processed"
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_payment_sync_succeeds_when_optional_test_collections_are_unavailable(monkeypatch) -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr(routes, "SessionLocal", session_factory)
+
+    class FakeRazorpayService:
+        def __init__(self, _settings, _connection) -> None:
+            pass
+
+        async def fetch_payments(self):
+            return [
+                {
+                    "id": "pay_partial_sync",
+                    "amount": 250000,
+                    "currency": "INR",
+                    "method": "upi",
+                    "status": "captured",
+                    "captured": True,
+                    "created_at": 1787310000,
+                }
+            ]
+
+        async def fetch_refunds(self):
+            request = httpx.Request("GET", "https://api.razorpay.com/v1/refunds")
+            response = httpx.Response(400, request=request)
+            raise httpx.HTTPStatusError("Unavailable in Test Mode", request=request, response=response)
+
+        async def fetch_settlements(self):
+            return []
+
+    monkeypatch.setattr(routes, "RazorpayService", FakeRazorpayService)
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        app_env="development",
+        database_url="sqlite+pysqlite:///:memory:",
+        token_encryption_key="test-only-high-entropy-encryption-key",
+    )
+    frontend_headers = {"X-FinPilot-Request": "1"}
+    try:
+        with TestClient(app) as client:
+            signup = client.post(
+                "/api/auth/signup",
+                headers=frontend_headers,
+                json={
+                    "full_name": "Partial Sync Owner",
+                    "business_name": "Partial Sync Business",
+                    "email": "partial-sync@example.com",
+                    "password": "correct horse battery staple",
+                },
+            )
+            assert signup.status_code == 201
+            business_id = signup.json()["business"]["id"]
+            with Session(engine) as db:
+                db.add(
+                    RazorpayConnection(
+                        business_id=business_id,
+                        status="connected",
+                        auth_type="api_key",
+                        mode="test",
+                    )
+                )
+                db.commit()
+
+            response = client.post("/api/razorpay/sync", headers=frontend_headers)
+            assert response.status_code == 200
+            assert response.json()["records"] == {
+                "payments": 1,
+                "refunds": 0,
+                "settlements": 0,
+            }
+            assert response.json()["warnings"] == [
+                "Refund history is unavailable for this Razorpay Test account"
+            ]
+            transactions = client.get("/api/transactions").json()
+            assert transactions["total"] == 1
+            assert transactions["items"][0]["id"] == "pay_partial_sync"
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)

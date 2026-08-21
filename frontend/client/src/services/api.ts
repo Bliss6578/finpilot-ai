@@ -103,6 +103,7 @@ export type SyncResult = {
     refunds: number;
     settlements: number;
   };
+  warnings?: string[];
   synced_at: string;
 };
 export async function fetchDashboard() {
