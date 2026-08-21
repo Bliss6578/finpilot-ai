@@ -1,0 +1,38 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*key*.csv
+
+# Python
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+
+# JavaScript
+node_modules/
+.pnpm-store/
+dist/
+build/
+.vercel/
+.manus-logs/
+coverage/
+*.tsbuildinfo
+
+# Editors, logs, and operating-system files
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.swp
+*.swo
+*~
+
