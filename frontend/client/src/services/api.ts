@@ -150,6 +150,32 @@ export type CashflowResponse = {
   };
   points: CashflowPoint[];
 };
+export type AICFOContext = {
+  as_of: string;
+  mode: "test" | "live";
+  latest_data_at: string | null;
+  payment_attempts: number;
+  suggestions: string[];
+  focus: {
+    title: string;
+    description: string;
+    cashflow_source: CashflowResponse["data_source"];
+  };
+};
+export type AICFOResponse = {
+  answer: string;
+  recommendation: string;
+  metrics: { label: string; value: string; detail: string }[];
+  suggestions: string[];
+  evidence: {
+    business_id: string;
+    mode: "test" | "live";
+    period_days: number;
+    latest_data_at: string | null;
+    cashflow_source: CashflowResponse["data_source"];
+    sources: string[];
+  };
+};
 export async function fetchDashboard() {
   return (await api.get<DashboardResponse>("/api/dashboard")).data;
 }
@@ -169,6 +195,12 @@ export async function fetchCashflow(historyDays = 60, forecastDays = 30) {
       params: { history_days: historyDays, forecast_days: forecastDays },
     })
   ).data;
+}
+export async function fetchAICFOContext() {
+  return (await api.get<AICFOContext>("/api/ai-cfo/context")).data;
+}
+export async function askAICFO(question: string) {
+  return (await api.post<AICFOResponse>("/api/ai-cfo/ask", { question })).data;
 }
 export async function syncRazorpay() {
   return (await api.post<SyncResult>("/api/razorpay/sync")).data;

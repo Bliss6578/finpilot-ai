@@ -2098,6 +2098,28 @@ a {
   font-family: "DM Mono";
   font-size: 11px;
 }
+.answer-metric small {
+  display: block;
+  margin-top: 4px;
+  color: #8a92a1;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.follow-up-queries {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.follow-up-queries:before {
+  content: "Continue with a grounded question";
+  grid-column: 1 / -1;
+  color: #847568;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .recommendation {
   margin-top: 11px;
   padding: 11px;
@@ -2226,8 +2248,10 @@ a {
   font-size: 10px;
 }
 .ai-health-line strong {
+  max-width: 58%;
+  text-align: right;
   font-family: "DM Mono";
-  font-size: 13px;
+  font-size: 10px;
   color: #3d38a0;
 }
 .scenario-layout {

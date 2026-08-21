@@ -42,9 +42,15 @@ python scripts/train_retail_cashflow.py /absolute/path/to/online+retail+ii.zip
 pytest -q
 ```
 
-The dataset teaches sales seasonality and cancellation behavior. It does not contain bank balances or operating expenses, so INR scale, opening cash, fixed expenses, variable costs, payment fees, and safe reserve are disclosed synthetic demo assumptions. After a workspace has at least 14 active Razorpay transaction days, its own isolated history supplies the sales baseline while the public artifact continues to provide seasonality.
+The dataset teaches sales seasonality and cancellation behavior. It does not contain bank balances or operating expenses, so INR scale, opening cash, fixed expenses, variable costs, payment fees, and safe reserve are disclosed synthetic demo assumptions. Synced Razorpay activity appears immediately; the dataset fills missing history until 14 active workspace days are available, after which the workspace history supplies the personalized sales baseline.
 
 Source: https://archive.ics.uci.edu/dataset/502/online+retail+ii
+
+## Grounded AI CFO
+
+`POST /api/ai-cfo/ask` calculates answers from the authenticated business and its active Test/Live mode. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, and the FinPilot cash-flow model. Responses include their evidence sources and contextual follow-up questions.
+
+The CFO deliberately calls Razorpay-derived revenue “net payment proceeds,” not accounting profit. It will not invent causes involving advertising, payroll, inventory, tax, or products until those data sources are connected. Tenant-isolation tests verify that one business cannot appear in another business's answer.
 
 ## Deployment
 
