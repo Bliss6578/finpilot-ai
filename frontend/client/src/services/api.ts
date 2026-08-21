@@ -42,6 +42,19 @@ export type DashboardResponse = {
     failed: number;
     refunded: number;
   };
+  financial_summary?: {
+    gross_revenue: number;
+    refund_amount: number;
+    pending_refund_amount: number;
+    razorpay_fees: number;
+    net_revenue: number;
+    settled_amount: number;
+  };
+  settlement_counts?: {
+    pending: number;
+    completed: number;
+    failed: number;
+  };
   recent_transactions: ApiTransaction[];
   data_source: "razorpay" | "empty";
 };
@@ -72,6 +85,11 @@ export type AuthSession = {
 export type SyncResult = {
   success: boolean;
   records_processed: number;
+  records?: {
+    payments: number;
+    refunds: number;
+    settlements: number;
+  };
   synced_at: string;
 };
 export async function fetchDashboard() {

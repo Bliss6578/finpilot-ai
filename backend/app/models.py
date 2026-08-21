@@ -36,6 +36,48 @@ class Transaction(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
+class Refund(Base):
+    __tablename__ = "refunds"
+    __table_args__ = (UniqueConstraint("business_id", "razorpay_refund_id", name="uq_refund_business_refund"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    razorpay_refund_id: Mapped[str] = mapped_column(String(64), index=True)
+    razorpay_payment_id: Mapped[str] = mapped_column(String(64), index=True)
+    amount_paise: Mapped[int] = mapped_column(BigInteger)
+    currency: Mapped[str] = mapped_column(String(8), default="INR")
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    receipt: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    batch_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    speed_requested: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
+    speed_processed: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
+    arn: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    provider_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class Settlement(Base):
+    __tablename__ = "settlements"
+    __table_args__ = (
+        UniqueConstraint("business_id", "razorpay_settlement_id", name="uq_settlement_business_settlement"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    razorpay_settlement_id: Mapped[str] = mapped_column(String(64), index=True)
+    amount_paise: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    fees_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    tax_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    utr: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, index=True)
+    provider_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class WebhookEvent(Base):
     __tablename__ = "webhook_events"
     __table_args__ = (UniqueConstraint("business_id", "provider_event_id", name="uq_webhook_business_event"),)

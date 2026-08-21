@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import RazorpayConnection, Transaction
+from app.models import RazorpayConnection, Refund, Settlement, Transaction
 from app.security import decrypt_secret, encrypt_secret
 
 
@@ -28,16 +28,34 @@ class RazorpayService:
         else:
             raise ValueError("This business has not connected a Razorpay account")
 
-    async def fetch_payments(self, count: int = 100, skip: int = 0) -> list[dict[str, Any]]:
+    async def _fetch_collection(self, path: str, page_size: int = 100) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        skip = 0
         async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(
-                f"{self.base_url}/payments",
-                params={"count": count, "skip": skip},
-                auth=self.auth,
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            return response.json().get("items", [])
+            while True:
+                response = await client.get(
+                    f"{self.base_url}/{path}",
+                    params={"count": page_size, "skip": skip},
+                    auth=self.auth,
+                    headers=self.headers,
+                )
+                response.raise_for_status()
+                page = response.json().get("items", [])
+                if not isinstance(page, list):
+                    raise ValueError(f"Razorpay returned an invalid {path} collection")
+                items.extend(page)
+                if len(page) < page_size:
+                    return items
+                skip += page_size
+
+    async def fetch_payments(self) -> list[dict[str, Any]]:
+        return await self._fetch_collection("payments")
+
+    async def fetch_refunds(self) -> list[dict[str, Any]]:
+        return await self._fetch_collection("refunds")
+
+    async def fetch_settlements(self) -> list[dict[str, Any]]:
+        return await self._fetch_collection("settlements")
 
 
 async def refresh_oauth_connection(
@@ -117,6 +135,79 @@ def upsert_payment(db: Session, payment: dict[str, Any], business_id: str = "dem
     }
     if record is None:
         record = Transaction(business_id=business_id, razorpay_payment_id=payment_id, **values)
+        db.add(record)
+    else:
+        for key, value in values.items():
+            setattr(record, key, value)
+    return record
+
+
+def provider_datetime(entity: dict[str, Any]) -> datetime:
+    timestamp = entity.get("created_at")
+    if isinstance(timestamp, (int, float)) and timestamp > 0:
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return datetime.now(timezone.utc)
+
+
+def upsert_refund(db: Session, refund: dict[str, Any], business_id: str = "demo-business") -> Refund:
+    refund_id = refund["id"]
+    payment_id = refund.get("payment_id")
+    if not payment_id:
+        raise ValueError(f"Refund {refund_id} is missing its payment identifier")
+    record = db.scalar(
+        select(Refund).where(
+            Refund.business_id == business_id,
+            Refund.razorpay_refund_id == refund_id,
+        )
+    )
+    acquirer_data = refund.get("acquirer_data")
+    if not isinstance(acquirer_data, dict):
+        acquirer_data = {}
+    values = {
+        "razorpay_payment_id": payment_id,
+        "amount_paise": refund.get("amount", 0),
+        "currency": refund.get("currency") or "INR",
+        "status": refund.get("status", "unknown"),
+        "receipt": refund.get("receipt"),
+        "batch_id": refund.get("batch_id"),
+        "speed_requested": refund.get("speed_requested"),
+        "speed_processed": refund.get("speed_processed"),
+        "arn": acquirer_data.get("arn"),
+        "provider_created_at": provider_datetime(refund),
+        "raw_payload": refund,
+    }
+    if record is None:
+        record = Refund(business_id=business_id, razorpay_refund_id=refund_id, **values)
+        db.add(record)
+    else:
+        for key, value in values.items():
+            setattr(record, key, value)
+    return record
+
+
+def upsert_settlement(
+    db: Session,
+    settlement: dict[str, Any],
+    business_id: str = "demo-business",
+) -> Settlement:
+    settlement_id = settlement["id"]
+    record = db.scalar(
+        select(Settlement).where(
+            Settlement.business_id == business_id,
+            Settlement.razorpay_settlement_id == settlement_id,
+        )
+    )
+    values = {
+        "amount_paise": settlement.get("amount", 0),
+        "status": settlement.get("status", "unknown"),
+        "fees_paise": settlement.get("fees") or 0,
+        "tax_paise": settlement.get("tax") or 0,
+        "utr": settlement.get("utr"),
+        "provider_created_at": provider_datetime(settlement),
+        "raw_payload": settlement,
+    }
+    if record is None:
+        record = Settlement(business_id=business_id, razorpay_settlement_id=settlement_id, **values)
         db.add(record)
     else:
         for key, value in values.items():

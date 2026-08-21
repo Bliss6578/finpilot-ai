@@ -27,6 +27,15 @@ const mockDashboard: DashboardResponse = {
   revenue: 542300,
   payment_success_rate: 94.2,
   transaction_counts: { total: 7, captured: 4, failed: 1, refunded: 1 },
+  financial_summary: {
+    gross_revenue: 542300,
+    refund_amount: 12400,
+    pending_refund_amount: 0,
+    razorpay_fees: 10846,
+    net_revenue: 519054,
+    settled_amount: 442300,
+  },
+  settlement_counts: { pending: 1, completed: 4, failed: 0 },
   recent_transactions: [],
   data_source: "empty",
 };
@@ -44,6 +53,19 @@ export default function Dashboard() {
   }, []);
   const recent: (ApiTransaction | (typeof mockTransactions)[number])[] =
     demoMode ? mockTransactions.slice(0, 5) : data.recent_transactions;
+  const financial = data.financial_summary ?? {
+    gross_revenue: data.revenue,
+    refund_amount: 0,
+    pending_refund_amount: 0,
+    razorpay_fees: 0,
+    net_revenue: data.revenue,
+    settled_amount: 0,
+  };
+  const settlements = data.settlement_counts ?? {
+    pending: 0,
+    completed: 0,
+    failed: 0,
+  };
   return (
     <>
       <div className="welcome-row">
@@ -53,7 +75,7 @@ export default function Dashboard() {
               "Reading business signals…"
             ) : (
               <>
-                Razorpay revenue <span>{currency(data.revenue)}</span>
+                Net Razorpay revenue <span>{currency(financial.net_revenue)}</span>
               </>
             )}
           </h1>
@@ -102,24 +124,24 @@ export default function Dashboard() {
       </section>
       <section className="metrics-grid">
         <MetricCard
-          label="Razorpay revenue"
-          value={currency(data.revenue)}
+          label="Net revenue"
+          value={currency(financial.net_revenue)}
           change={demoMode ? "Demo" : "Live"}
-          detail={`${data.transaction_counts.captured} captured payments`}
+          detail={`${currency(financial.gross_revenue)} gross revenue`}
         />
         <MetricCard
-          label="Payment attempts"
-          value={String(data.transaction_counts.total)}
-          change={`${data.transaction_counts.failed} failed`}
-          changeType={data.transaction_counts.failed ? "down" : "flat"}
-          detail="Razorpay Test Mode"
+          label="Refunds"
+          value={currency(financial.refund_amount)}
+          change={`${data.transaction_counts.refunded} processed`}
+          changeType={financial.refund_amount ? "down" : "flat"}
+          detail={`${currency(financial.pending_refund_amount)} pending`}
         />
         <MetricCard
-          label="Refunded"
-          value={String(data.transaction_counts.refunded)}
-          change="Synced"
+          label="Settled to bank"
+          value={currency(financial.settled_amount)}
+          change={`${settlements.completed} completed`}
           changeType="flat"
-          detail="Current imported records"
+          detail={`${settlements.pending} pending settlements`}
         />
         <MetricCard
           label="Payment success"
@@ -167,15 +189,18 @@ export default function Dashboard() {
               <SectionLabel>Incoming capital</SectionLabel>
               <h2>Money in</h2>
             </div>
-            <span className="accent-mini">{currency(data.revenue)}</span>
+            <span className="accent-mini">{currency(financial.gross_revenue)}</span>
           </div>
           <MoneyRow
             label="Captured payments"
-            value={data.revenue}
+            value={financial.gross_revenue}
             tone="positive"
           />
-          <MoneyRow label="Settlements" value={0} />
-          <MoneyRow label="Outstanding" value={0} />
+          <MoneyRow label="Settled to bank" value={financial.settled_amount} />
+          <MoneyRow
+            label="Awaiting settlement"
+            value={Math.max(financial.net_revenue - financial.settled_amount, 0)}
+          />
         </Panel>
         <Panel className="money-panel">
           <div className="money-panel-head">
@@ -185,15 +210,16 @@ export default function Dashboard() {
             </div>
           </div>
           <MoneyRow
-            label="Failed attempts"
-            value={data.transaction_counts.failed}
-          />
-          <MoneyRow
-            label="Refunded payments"
-            value={data.transaction_counts.refunded}
+            label="Processed refunds"
+            value={financial.refund_amount}
             tone="negative"
           />
-          <MoneyRow label="Expenses" value={0} />
+          <MoneyRow label="Razorpay fees" value={financial.razorpay_fees} />
+          <MoneyRow
+            label="Pending refunds"
+            value={financial.pending_refund_amount}
+            tone="negative"
+          />
         </Panel>
       </section>
       <Panel className="transactions-panel">
