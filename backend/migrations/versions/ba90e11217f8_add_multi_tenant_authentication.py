@@ -103,12 +103,6 @@ def upgrade() -> None:
         "INSERT INTO businesses (id, name, slug, currency, created_at) "
         "VALUES ('demo-business', 'FinPilot Demo', 'finpilot-demo', 'INR', CURRENT_TIMESTAMP)"
     )
-    op.execute(
-        "INSERT INTO razorpay_connections "
-        "(business_id, auth_type, mode, status, connected_at, updated_at) "
-        "VALUES ('demo-business', 'env_api_key', 'test', 'connected', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-    )
-
     op.add_column("sync_runs", sa.Column("business_id", sa.String(length=64), nullable=True))
     op.execute("UPDATE sync_runs SET business_id = 'demo-business' WHERE business_id IS NULL")
     op.alter_column("sync_runs", "business_id", nullable=False)

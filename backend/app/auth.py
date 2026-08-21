@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,12 @@ class AuthContext:
     user: User
     business: Business
     membership: BusinessMember
+
+
+def require_frontend_request(x_finpilot_request: str = Header(default="")) -> None:
+    """Require a non-simple header so browsers must pass the configured CORS check."""
+    if x_finpilot_request != "1":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Request verification failed")
 
 
 def require_auth(

@@ -3,6 +3,7 @@ import hmac
 
 from app.services.razorpay import verify_webhook_signature
 from app.security import decrypt_secret, encrypt_secret, hash_password, verify_password
+from app.config import Settings
 
 
 def test_webhook_signature_verification() -> None:
@@ -50,3 +51,15 @@ def test_oauth_tokens_are_encrypted_at_rest() -> None:
     encrypted = encrypt_secret("oauth-access-token", key)
     assert "oauth-access-token" not in encrypted
     assert decrypt_secret(encrypted, key) == "oauth-access-token"
+
+
+def test_host_generated_secret_can_encrypt_oauth_tokens() -> None:
+    key = "render-generated-high-entropy-secret"
+    encrypted = encrypt_secret("oauth-access-token", key)
+    assert decrypt_secret(encrypted, key) == "oauth-access-token"
+
+
+def test_hosted_postgres_url_uses_psycopg3() -> None:
+    settings = Settings(database_url="postgresql://user:pass@db.internal/finpilot")
+    assert settings.sqlalchemy_database_url.startswith("postgresql+psycopg://")
+    assert Settings(app_env="production").cookie_samesite == "none"

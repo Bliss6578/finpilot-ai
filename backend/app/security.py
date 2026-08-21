@@ -61,16 +61,24 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def encrypt_secret(value: str, key: str) -> str:
-    if not key:
-        raise ValueError("TOKEN_ENCRYPTION_KEY is not configured")
-    return Fernet(key.encode()).encrypt(value.encode()).decode()
-
-
-def decrypt_secret(value: str, key: str) -> str:
+def _fernet(key: str) -> Fernet:
     if not key:
         raise ValueError("TOKEN_ENCRYPTION_KEY is not configured")
     try:
-        return Fernet(key.encode()).decrypt(value.encode()).decode()
+        return Fernet(key.encode())
+    except (TypeError, ValueError):
+        # Hosting providers can safely generate an arbitrary high-entropy
+        # secret; derive the exact 32-byte URL-safe key Fernet requires.
+        derived = base64.urlsafe_b64encode(hashlib.sha256(key.encode()).digest())
+        return Fernet(derived)
+
+
+def encrypt_secret(value: str, key: str) -> str:
+    return _fernet(key).encrypt(value.encode()).decode()
+
+
+def decrypt_secret(value: str, key: str) -> str:
+    try:
+        return _fernet(key).decrypt(value.encode()).decode()
     except InvalidToken as exc:
         raise ValueError("Unable to decrypt Razorpay credentials") from exc

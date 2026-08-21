@@ -12,11 +12,12 @@ class Settings(BaseSettings):
     razorpay_webhook_secret: str = ""
     razorpay_client_id: str = ""
     razorpay_client_secret: str = ""
-    razorpay_redirect_uri: str = "http://127.0.0.1:8000/api/razorpay/oauth/callback"
+    razorpay_redirect_uri: str = ""
     razorpay_oauth_mode: str = "test"
     token_encryption_key: str = ""
     session_cookie_name: str = "finpilot_session"
     session_days: int = 30
+    render_external_hostname: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -27,6 +28,27 @@ class Settings(BaseSettings):
     @property
     def razorpay_oauth_configured(self) -> bool:
         return bool(self.razorpay_client_id and self.razorpay_client_secret and self.token_encryption_key)
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        """Select psycopg 3 when a host provides a standard PostgreSQL URL."""
+        if self.database_url.startswith("postgresql://"):
+            return self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        if self.database_url.startswith("postgres://"):
+            return self.database_url.replace("postgres://", "postgresql+psycopg://", 1)
+        return self.database_url
+
+    @property
+    def effective_razorpay_redirect_uri(self) -> str:
+        if self.razorpay_redirect_uri:
+            return self.razorpay_redirect_uri
+        if self.render_external_hostname:
+            return f"https://{self.render_external_hostname}/api/razorpay/oauth/callback"
+        return "http://127.0.0.1:8000/api/razorpay/oauth/callback"
+
+    @property
+    def cookie_samesite(self) -> str:
+        return "lax" if self.app_env == "development" else "none"
 
 
 @lru_cache

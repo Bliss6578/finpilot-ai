@@ -10,7 +10,7 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.auth import AuthContext, require_auth
+from app.auth import AuthContext, require_auth, require_frontend_request
 from app.database import SessionLocal, get_db
 from app.models import RazorpayConnection, SyncRun, Transaction, WebhookEvent
 from app.services.razorpay import (
@@ -40,8 +40,17 @@ def transaction_json(item: Transaction) -> dict[str, Any]:
 
 
 @router.get("/health")
-def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
-    return {"status": "ok", "environment": settings.app_env, "razorpay_configured": settings.razorpay_configured}
+def health(
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    db.execute(select(1))
+    return {
+        "status": "ok",
+        "environment": settings.app_env,
+        "database": "ok",
+        "razorpay_configured": settings.razorpay_configured,
+    }
 
 
 @router.get("/razorpay/status")
@@ -74,6 +83,7 @@ async def sync_razorpay(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> dict[str, Any]:
     connection = db.scalar(
         select(RazorpayConnection).where(

@@ -11,7 +11,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import AuthContext, require_auth
+from app.auth import AuthContext, require_auth, require_frontend_request
 from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import OAuthState, RazorpayConnection
@@ -26,6 +26,7 @@ def authorize(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> dict[str, str]:
     if not settings.razorpay_oauth_configured:
         raise HTTPException(
@@ -47,7 +48,7 @@ def authorize(
         {
             "client_id": settings.razorpay_client_id,
             "response_type": "code",
-            "redirect_uri": settings.razorpay_redirect_uri,
+            "redirect_uri": settings.effective_razorpay_redirect_uri,
             "scope": "read_only",
             "state": raw_state,
         }
@@ -78,7 +79,7 @@ async def callback(
                 "client_id": settings.razorpay_client_id,
                 "client_secret": settings.razorpay_client_secret,
                 "grant_type": "authorization_code",
-                "redirect_uri": settings.razorpay_redirect_uri,
+                "redirect_uri": settings.effective_razorpay_redirect_uri,
                 "code": code,
                 "mode": settings.razorpay_oauth_mode,
             },
@@ -113,6 +114,7 @@ async def disconnect(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> None:
     connection = db.scalar(
         select(RazorpayConnection).where(RazorpayConnection.business_id == context.business.id)

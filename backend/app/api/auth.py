@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import AuthContext, require_auth
+from app.auth import AuthContext, require_auth, require_frontend_request
 from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import AuthSession, Business, BusinessMember, RazorpayConnection, User
@@ -81,7 +81,7 @@ def create_session(
         max_age=settings.session_days * 24 * 60 * 60,
         httponly=True,
         secure=settings.app_env != "development",
-        samesite="lax",
+        samesite=settings.cookie_samesite,
         path="/",
     )
 
@@ -92,6 +92,7 @@ def signup(
     response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> dict:
     try:
         email = normalize_email(payload.email)
@@ -144,6 +145,7 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> dict:
     try:
         email = normalize_email(payload.email)
@@ -184,6 +186,7 @@ def logout(
     response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
 ) -> Response:
     token = request.cookies.get(settings.session_cookie_name)
     if token:
@@ -191,6 +194,11 @@ def logout(
         if session:
             db.delete(session)
             db.commit()
-    response.delete_cookie(settings.session_cookie_name, path="/")
+    response.delete_cookie(
+        settings.session_cookie_name,
+        path="/",
+        secure=settings.app_env != "development",
+        samesite=settings.cookie_samesite,
+    )
     response.status_code = status.HTTP_204_NO_CONTENT
     return response

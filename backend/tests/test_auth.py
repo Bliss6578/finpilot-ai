@@ -36,6 +36,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
         with TestClient(app) as client:
             response = client.post(
                 "/api/auth/signup",
+                headers={"X-FinPilot-Request": "1"},
                 json={
                     "full_name": "Test Owner",
                     "business_name": "Test Business",
@@ -48,7 +49,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
             assert response.json()["business"]["role"] == "owner"
             assert client.get("/api/auth/me").status_code == 200
             assert client.get("/api/transactions").status_code == 200
-            logout_response = client.post("/api/auth/logout")
+            logout_response = client.post("/api/auth/logout", headers={"X-FinPilot-Request": "1"})
             assert logout_response.status_code == 204
             assert client.get("/api/auth/me").status_code == 401
 
@@ -58,3 +59,12 @@ def test_signup_session_and_protected_tenant_routes() -> None:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_state_changing_auth_routes_require_verification_header() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/auth/login",
+            json={"email": "owner@example.com", "password": "not-used"},
+        )
+        assert response.status_code == 403

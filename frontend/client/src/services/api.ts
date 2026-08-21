@@ -4,7 +4,10 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
   timeout: 15_000,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    "X-FinPilot-Request": "1",
+  },
 });
 export type ApiTransaction = {
   id: string;
