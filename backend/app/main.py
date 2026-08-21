@@ -8,7 +8,7 @@ from app.config import get_settings
 
 settings = get_settings()
 app = FastAPI(title="FinPilot API", version="0.1.0")
-app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_url], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(razorpay_oauth_router)

@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     def cookie_samesite(self) -> str:
         return "lax" if self.app_env == "development" else "none"
 
+    @property
+    def frontend_origin(self) -> str:
+        return self.frontend_url.rstrip("/")
+
 
 @lru_cache
 def get_settings() -> Settings:
