@@ -103,6 +103,10 @@ async def callback(
     connection.refresh_token_encrypted = encrypt_secret(payload["refresh_token"], settings.token_encryption_key)
     connection.access_token_expires_at = now + timedelta(seconds=expires_in)
     connection.refresh_token_expires_at = now + timedelta(days=180)
+    connection.api_key_id = None
+    connection.api_key_secret_encrypted = None
+    connection.webhook_token = None
+    connection.webhook_secret_encrypted = None
     connection.connected_at = now
     db.delete(oauth_state)
     db.commit()

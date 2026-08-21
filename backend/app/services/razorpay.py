@@ -23,6 +23,9 @@ class RazorpayService:
         if connection and connection.auth_type == "oauth" and connection.access_token_encrypted:
             token = decrypt_secret(connection.access_token_encrypted, settings.token_encryption_key)
             self.headers["Authorization"] = f"Bearer {token}"
+        elif connection and connection.auth_type == "api_key" and connection.api_key_id and connection.api_key_secret_encrypted:
+            secret = decrypt_secret(connection.api_key_secret_encrypted, settings.token_encryption_key)
+            self.auth = (connection.api_key_id, secret)
         elif connection and connection.auth_type == "env_api_key" and settings.razorpay_configured:
             self.auth = (settings.razorpay_key_id, settings.razorpay_key_secret)
         else:
@@ -56,6 +59,19 @@ class RazorpayService:
 
     async def fetch_settlements(self) -> list[dict[str, Any]]:
         return await self._fetch_collection("settlements")
+
+
+async def validate_api_credentials(key_id: str, key_secret: str) -> None:
+    """Validate merchant credentials without persisting or returning them."""
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            "https://api.razorpay.com/v1/payments",
+            params={"count": 1, "skip": 0},
+            auth=(key_id, key_secret),
+        )
+    if response.status_code in {400, 401, 403}:
+        raise ValueError("Razorpay rejected this Key ID and Key Secret")
+    response.raise_for_status()
 
 
 async def refresh_oauth_connection(

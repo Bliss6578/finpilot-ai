@@ -175,6 +175,10 @@ class RazorpayConnection(Base):
     refresh_token_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     access_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     refresh_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    api_key_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    api_key_secret_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    webhook_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    webhook_secret_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

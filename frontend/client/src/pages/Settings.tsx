@@ -1,13 +1,17 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { Check, KeyRound, Link2, LogOut, MailCheck, RefreshCw, ShieldCheck } from "lucide-react";
+import { Check, Copy, KeyRound, Link2, LogOut, MailCheck, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
 import {
   fetchRazorpayStatus,
   beginRazorpayOAuth,
+  connectRazorpayApiKeys,
+  disconnectRazorpayApiKeys,
   revokeOtherSessions,
   requestEmailVerification,
+  rotateRazorpayWebhookSecret,
   syncRazorpay,
+  type RazorpayWebhookCredentials,
   type RazorpayStatus,
 } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +25,7 @@ const notifications = [
   "Weekly finance report",
 ];
 export default function Settings() {
-  const { session, logout, changePassword } = useAuth();
+  const { session, logout, changePassword, refresh: refreshSession } = useAuth();
   const [mode, setMode] = useState("Advisor");
   const [syncing, setSyncing] = useState(false);
   const [connection, setConnection] = useState<RazorpayStatus | null>(null);
@@ -29,6 +33,11 @@ export default function Settings() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [revokingSessions, setRevokingSessions] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
+  const [apiKeys, setApiKeys] = useState({ keyId: "", keySecret: "" });
+  const [connectingKeys, setConnectingKeys] = useState(false);
+  const [disconnectingKeys, setDisconnectingKeys] = useState(false);
+  const [rotatingWebhook, setRotatingWebhook] = useState(false);
+  const [webhookCredentials, setWebhookCredentials] = useState<RazorpayWebhookCredentials | null>(null);
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     "Cash flow risks": true,
     "Payment failures": true,
@@ -97,7 +106,11 @@ export default function Settings() {
   };
   const refreshStatus = async () => {
     try {
-      setConnection(await fetchRazorpayStatus());
+      const next = await fetchRazorpayStatus();
+      setConnection(next);
+      if (next.connection_type === "api_key" && next.api_key_id) {
+        setApiKeys(current => ({ ...current, keyId: current.keyId || next.api_key_id || "" }));
+      }
     } catch {
       setConnection(null);
     }
@@ -111,16 +124,80 @@ export default function Settings() {
       const result = await syncRazorpay();
       await refreshStatus();
       toast.success("Razorpay synchronized", {
-        description: `${result.records_processed} payment record${result.records_processed === 1 ? "" : "s"} processed.`,
+        description: result.records
+          ? `${result.records.payments} payments, ${result.records.refunds} refunds and ${result.records.settlements} settlements processed.`
+          : `${result.records_processed} Razorpay record${result.records_processed === 1 ? "" : "s"} processed.`,
       });
-    } catch {
+    } catch (reason: any) {
       toast.error("Unable to sync Razorpay", {
-        description:
-          "Confirm that the FinPilot backend is running on port 8000.",
+        description: reason?.response?.data?.detail ?? "Please try again shortly.",
       });
     } finally {
       setSyncing(false);
     }
+  };
+  const connectApiKeys = async (event: FormEvent) => {
+    event.preventDefault();
+    setConnectingKeys(true);
+    try {
+      const result = await connectRazorpayApiKeys(apiKeys.keyId.trim(), apiKeys.keySecret);
+      setApiKeys({ keyId: result.key_id, keySecret: "" });
+      if (result.webhook_secret) {
+        setWebhookCredentials({
+          webhook_url: result.webhook_url,
+          webhook_secret: result.webhook_secret,
+        });
+      }
+      await Promise.all([refreshStatus(), refreshSession()]);
+      toast.success("Razorpay Test Mode connected", {
+        description: result.webhook_secret
+          ? "Copy the webhook URL and secret below, then configure them in Razorpay."
+          : "The encrypted credentials were updated successfully.",
+      });
+    } catch (reason: any) {
+      toast.error("Unable to connect Razorpay", {
+        description: reason?.response?.data?.detail ?? "Check the Test Mode keys and try again.",
+      });
+    } finally {
+      setConnectingKeys(false);
+    }
+  };
+  const rotateWebhook = async () => {
+    setRotatingWebhook(true);
+    try {
+      const result = await rotateRazorpayWebhookSecret();
+      setWebhookCredentials(result);
+      toast.success("New webhook secret generated", {
+        description: "Update the webhook in Razorpay before sending more events.",
+      });
+    } catch (reason: any) {
+      toast.error("Unable to rotate webhook secret", {
+        description: reason?.response?.data?.detail ?? "Please try again shortly.",
+      });
+    } finally {
+      setRotatingWebhook(false);
+    }
+  };
+  const disconnectApiKeys = async () => {
+    if (!window.confirm("Disconnect Razorpay Test Mode from this FinPilot workspace?")) return;
+    setDisconnectingKeys(true);
+    try {
+      await disconnectRazorpayApiKeys();
+      setWebhookCredentials(null);
+      setApiKeys({ keyId: "", keySecret: "" });
+      await Promise.all([refreshStatus(), refreshSession()]);
+      toast.success("Razorpay disconnected");
+    } catch (reason: any) {
+      toast.error("Unable to disconnect Razorpay", {
+        description: reason?.response?.data?.detail ?? "Please try again shortly.",
+      });
+    } finally {
+      setDisconnectingKeys(false);
+    }
+  };
+  const copyValue = async (label: string, value: string) => {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
   };
   const connectRazorpay = async () => {
     try {
@@ -198,16 +275,88 @@ export default function Settings() {
                       <Link2 /> Connect your account
                     </button>
                   )}
+                  {connection.connection_type === "api_key" && (
+                    <button
+                      className="button-secondary"
+                      onClick={() => void disconnectApiKeys()}
+                      disabled={disconnectingKeys}
+                    >
+                      <Unplug /> {disconnectingKeys ? "Disconnecting…" : "Disconnect"}
+                    </button>
+                  )}
                 </div>
               ) : (
-                <button className="button-primary" onClick={() => void connectRazorpay()}>
-                  <Link2 /> Connect Razorpay
-                </button>
+                connection?.oauth_available ? (
+                  <button className="button-secondary" onClick={() => void connectRazorpay()}>
+                    <Link2 /> Partner OAuth
+                  </button>
+                ) : null
               )}
             </div>
-            {!connection?.connected && !connection?.oauth_available && (
+            {(!connection?.connected || connection.connection_type === "api_key") && (
+              <form className="api-key-connect-form" onSubmit={connectApiKeys}>
+                <div>
+                  <SectionLabel>{connection?.connected ? "Update test credentials" : "Connect without Partner approval"}</SectionLabel>
+                  <h3>Razorpay Test Mode API keys</h3>
+                  <p>Credentials are verified by Razorpay and the Key Secret is encrypted before storage.</p>
+                </div>
+                <div className="api-key-fields">
+                  <label className="setting-field">
+                    <span>Test Key ID</span>
+                    <input
+                      required
+                      autoComplete="off"
+                      placeholder="rzp_test_..."
+                      value={apiKeys.keyId}
+                      onChange={event => setApiKeys(current => ({ ...current, keyId: event.target.value }))}
+                    />
+                  </label>
+                  <label className="setting-field">
+                    <span>{connection?.connected ? "New Key Secret" : "Test Key Secret"}</span>
+                    <input
+                      required
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={connection?.connected ? "Enter a replacement secret" : "Enter the secret shown by Razorpay"}
+                      value={apiKeys.keySecret}
+                      onChange={event => setApiKeys(current => ({ ...current, keySecret: event.target.value }))}
+                    />
+                  </label>
+                </div>
+                <button className="button-primary" type="submit" disabled={connectingKeys}>
+                  <KeyRound /> {connectingKeys ? "Verifying…" : connection?.connected ? "Update encrypted keys" : "Verify and connect"}
+                </button>
+              </form>
+            )}
+            {connection?.connection_type === "api_key" && connection.webhook_url && (
+              <div className="webhook-setup-card">
+                <div>
+                  <SectionLabel>Per-business webhook</SectionLabel>
+                  <h3>Connect real-time events</h3>
+                  <p>Use this URL only for this FinPilot workspace.</p>
+                </div>
+                <div className="credential-row">
+                  <span>Webhook URL</span>
+                  <code>{connection.webhook_url}</code>
+                  <button type="button" className="icon-button" aria-label="Copy webhook URL" onClick={() => void copyValue("Webhook URL", connection.webhook_url!)}><Copy /></button>
+                </div>
+                {webhookCredentials ? (
+                  <div className="credential-row secret-row">
+                    <span>Webhook Secret · shown once</span>
+                    <code>{webhookCredentials.webhook_secret}</code>
+                    <button type="button" className="icon-button" aria-label="Copy webhook secret" onClick={() => void copyValue("Webhook secret", webhookCredentials.webhook_secret)}><Copy /></button>
+                  </div>
+                ) : (
+                  <p className="credential-hidden">The saved webhook secret is encrypted and hidden. Rotate it if you need a new one.</p>
+                )}
+                <button type="button" className="button-secondary" onClick={() => void rotateWebhook()} disabled={rotatingWebhook}>
+                  <RefreshCw className={rotatingWebhook ? "spin" : ""} /> {rotatingWebhook ? "Generating…" : "Generate new webhook secret"}
+                </button>
+              </div>
+            )}
+            {!connection?.connected && (
               <div className="connection-notice">
-                FinPilot is ready for Razorpay OAuth. Add Partner development credentials to enable this button for client workspaces.
+                Beta access accepts Test Mode keys only. Live merchant connections will use Razorpay Partner OAuth after approval.
               </div>
             )}
           </Panel>

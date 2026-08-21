@@ -13,6 +13,7 @@ from app.config import Settings, get_settings
 from app.auth import AuthContext, require_auth, require_frontend_request
 from app.database import SessionLocal, get_db
 from app.models import RazorpayConnection, Refund, Settlement, SyncRun, Transaction, WebhookEvent
+from app.security import decrypt_secret
 from app.services.razorpay import (
     RazorpayService,
     refresh_oauth_connection,
@@ -101,6 +102,12 @@ def razorpay_status(
         "connected": bool(connection and connection.status == "connected"),
         "mode": connection.mode if connection else "test",
         "connection_type": connection.auth_type if connection else None,
+        "api_key_id": connection.api_key_id if connection and connection.auth_type == "api_key" else None,
+        "webhook_url": (
+            f"{settings.backend_origin}/api/webhooks/razorpay/{connection.webhook_token}"
+            if connection and connection.auth_type == "api_key" and connection.webhook_token
+            else None
+        ),
         "oauth_available": settings.razorpay_oauth_configured,
         "last_sync": latest.finished_at.isoformat() if latest and latest.finished_at else None,
         "last_sync_status": latest.status if latest else "never",
@@ -386,6 +393,69 @@ def process_webhook(event_id: int) -> None:
             db.commit()
 
 
+def accept_webhook(
+    db: Session,
+    background_tasks: BackgroundTasks,
+    connection: RazorpayConnection,
+    payload: dict[str, Any],
+    provider_event_id: str,
+) -> dict[str, bool]:
+    existing = db.scalar(
+        select(WebhookEvent).where(
+            WebhookEvent.business_id == connection.business_id,
+            WebhookEvent.provider_event_id == provider_event_id,
+        )
+    )
+    if existing:
+        return {"accepted": True, "duplicate": True}
+    event = WebhookEvent(
+        business_id=connection.business_id,
+        provider_event_id=provider_event_id,
+        event_type=payload.get("event", "unknown"),
+        payload=payload,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    background_tasks.add_task(process_webhook, event.id)
+    return {"accepted": True, "duplicate": False}
+
+
+@router.post("/webhooks/razorpay/{webhook_token}", status_code=status.HTTP_202_ACCEPTED)
+async def razorpay_tenant_webhook(
+    webhook_token: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_razorpay_signature: str = Header(default=""),
+    x_razorpay_event_id: str = Header(default=""),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, bool]:
+    connection = db.scalar(
+        select(RazorpayConnection).where(
+            RazorpayConnection.webhook_token == webhook_token,
+            RazorpayConnection.auth_type == "api_key",
+            RazorpayConnection.status == "connected",
+        )
+    )
+    if connection is None or not connection.webhook_secret_encrypted:
+        raise HTTPException(status_code=404, detail="Webhook connection not found")
+    if not x_razorpay_event_id:
+        raise HTTPException(status_code=400, detail="Missing Razorpay event identifier")
+    raw_body = await request.body()
+    try:
+        webhook_secret = decrypt_secret(connection.webhook_secret_encrypted, settings.token_encryption_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="Webhook verification is unavailable") from exc
+    if not verify_webhook_signature(raw_body, x_razorpay_signature, webhook_secret):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+    return accept_webhook(db, background_tasks, connection, payload, x_razorpay_event_id)
+
+
 @router.post("/webhooks/razorpay", status_code=status.HTTP_202_ACCEPTED)
 async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks, x_razorpay_signature: str = Header(default=""), x_razorpay_event_id: str = Header(default=""), db: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> dict[str, Any]:
     raw_body = await request.body()
@@ -408,28 +478,13 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks, 
         )
     if connection is None:
         connections = db.scalars(
-            select(RazorpayConnection).where(RazorpayConnection.status == "connected").limit(2)
+            select(RazorpayConnection).where(
+                RazorpayConnection.status == "connected",
+                RazorpayConnection.auth_type != "api_key",
+            ).limit(2)
         ).all()
         if len(connections) == 1:
             connection = connections[0]
     if connection is None:
         raise HTTPException(status_code=400, detail="Webhook account is not connected to FinPilot")
-    existing = db.scalar(
-        select(WebhookEvent).where(
-            WebhookEvent.business_id == connection.business_id,
-            WebhookEvent.provider_event_id == x_razorpay_event_id,
-        )
-    )
-    if existing:
-        return {"accepted": True, "duplicate": True}
-    event = WebhookEvent(
-        business_id=connection.business_id,
-        provider_event_id=x_razorpay_event_id,
-        event_type=payload.get("event", "unknown"),
-        payload=payload,
-    )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
-    background_tasks.add_task(process_webhook, event.id)
-    return {"accepted": True, "duplicate": False}
+    return accept_webhook(db, background_tasks, connection, payload, x_razorpay_event_id)

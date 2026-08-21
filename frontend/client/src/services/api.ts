@@ -63,8 +63,21 @@ export type RazorpayStatus = {
   mode: "test" | "live";
   last_sync: string | null;
   last_sync_status: string;
-  connection_type: "oauth" | "env_api_key" | null;
+  connection_type: "oauth" | "env_api_key" | "api_key" | null;
+  api_key_id: string | null;
+  webhook_url: string | null;
   oauth_available: boolean;
+};
+export type RazorpayAPIKeyConnection = {
+  connected: true;
+  mode: "test";
+  key_id: string;
+  webhook_url: string;
+  webhook_secret: string | null;
+};
+export type RazorpayWebhookCredentials = {
+  webhook_url: string;
+  webhook_secret: string;
 };
 export type AuthSession = {
   user: {
@@ -167,4 +180,22 @@ export async function beginRazorpayOAuth() {
       "/api/razorpay/oauth/authorize"
     )
   ).data;
+}
+export async function connectRazorpayApiKeys(keyId: string, keySecret: string) {
+  return (
+    await api.post<RazorpayAPIKeyConnection>("/api/razorpay/api-keys/connect", {
+      key_id: keyId,
+      key_secret: keySecret,
+    })
+  ).data;
+}
+export async function rotateRazorpayWebhookSecret() {
+  return (
+    await api.post<RazorpayWebhookCredentials>(
+      "/api/razorpay/api-keys/webhook/rotate"
+    )
+  ).data;
+}
+export async function disconnectRazorpayApiKeys() {
+  await api.delete("/api/razorpay/api-keys/disconnect");
 }

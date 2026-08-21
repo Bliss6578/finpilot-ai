@@ -49,6 +49,12 @@ class Settings(BaseSettings):
         return "http://127.0.0.1:8000/api/razorpay/oauth/callback"
 
     @property
+    def backend_origin(self) -> str:
+        if self.render_external_hostname:
+            return f"https://{self.render_external_hostname}"
+        return "http://127.0.0.1:8000"
+
+    @property
     def cookie_samesite(self) -> str:
         return "lax" if self.app_env == "development" else "none"
 

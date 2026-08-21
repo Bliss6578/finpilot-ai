@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.api.auth import router as auth_router
 from app.api.razorpay_oauth import router as razorpay_oauth_router
+from app.api.razorpay_keys import router as razorpay_keys_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -12,6 +13,7 @@ app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin], all
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(razorpay_oauth_router)
+app.include_router(razorpay_keys_router)
 
 
 @app.get("/")
