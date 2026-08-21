@@ -34,7 +34,13 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
       navigate("/dashboard", { replace: true });
     } catch (reason) {
       if (axios.isAxiosError(reason)) {
-        setError(reason.response?.data?.detail ?? "Unable to continue. Please try again.");
+        if (reason.code === "ECONNABORTED") {
+          setError("FinPilot's secure service is still waking up. Please try once more in a moment.");
+        } else if (!reason.response) {
+          setError("Unable to reach the secure service. Check your connection and try again.");
+        } else {
+          setError(reason.response.data?.detail ?? "Unable to continue. Please try again.");
+        }
       } else {
         setError("Unable to continue. Please try again.");
       }

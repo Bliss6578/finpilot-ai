@@ -11,7 +11,9 @@ const apiBaseUrl = configuredApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 15_000,
+  // Render's free service can need close to a minute to wake after inactivity.
+  // Keep authentication requests alive long enough for that cold start.
+  timeout: 75_000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
