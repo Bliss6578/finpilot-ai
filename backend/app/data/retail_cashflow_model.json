@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "model_name": "explainable_retail_seasonality_v1",
+  "source": {
+    "dataset": "UCI Online Retail II",
+    "file": "online+retail+ii.zip",
+    "currency": "GBP",
+    "first_date": "2009-12-01",
+    "last_date": "2011-12-09",
+    "rows_seen": 1067371,
+    "active_days": 604,
+    "cancellation_lines": 22951,
+    "excluded_lines": 2750
+  },
+  "training": {
+    "target": "daily_net_sales",
+    "winsorization": {
+      "lower_quantile": 0.02,
+      "upper_quantile": 0.98
+    },
+    "baseline_daily_net_sales": 27908.855,
+    "daily_mean": 31957.78741,
+    "daily_stddev": 16868.329484,
+    "return_rate": 0.07282909,
+    "weekday_multipliers": {
+      "0": 1.257742,
+      "1": 1.291067,
+      "2": 1.17304,
+      "3": 1.398482,
+      "4": 1.078938,
+      "5": 0.351252,
+      "6": 0.665876
+    },
+    "month_multipliers": {
+      "1": 0.890615,
+      "2": 0.772874,
+      "3": 0.963422,
+      "4": 0.926293,
+      "5": 0.97889,
+      "6": 0.945184,
+      "7": 0.897735,
+      "8": 0.945428,
+      "9": 1.266566,
+      "10": 1.484683,
+      "11": 1.954418,
+      "12": 1.660062
+    }
+  },
+  "demo_assumptions": {
+    "target_currency": "INR",
+    "baseline_daily_inflow_paise": 5000000,
+    "opening_balance_paise": 25000000,
+    "safe_reserve_paise": 10000000,
+    "variable_cost_ratio": 0.42,
+    "payment_fee_ratio": 0.022,
+    "fixed_daily_opex_paise": 600000
+  },
+  "limitations": [
+    "The source contains sales and cancellations, not bank balances or operating expenses.",
+    "INR scale and expense assumptions are synthetic demo inputs, not learned facts.",
+    "This artifact is a global demo prior and is never trained on a FinPilot tenant's private data."
+  ]
+}

@@ -15,17 +15,36 @@ import {
   YAxis,
 } from "recharts";
 import { cashFlowData, currency } from "@/data/mockData";
+import type { CashflowPoint } from "@/services/api";
 import { useReducedMotion } from "framer-motion";
 
 const formatAxis = (value: number) => `₹${Math.round(value / 100000)}L`;
 
 export function CashFlowChart({
   variant = "dashboard",
+  data,
+  safeReserve = 100000,
+  riskDate,
 }: {
   variant?: "dashboard" | "full";
+  data?: CashflowPoint[];
+  safeReserve?: number;
+  riskDate?: string;
 }) {
-  const [range, setRange] = useState("30D");
+  const [range, setRange] = useState<"7D" | "30D" | "90D">("30D");
   const reducedMotion = useReducedMotion();
+  const allChartData = (data ?? cashFlowData).map(point => ({
+    ...point,
+    displayDate: "kind" in point
+      ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(point.date))
+      : point.date,
+  }));
+  const actual = allChartData.filter(point => point.actual != null);
+  const forecast = allChartData.filter(point => point.forecast != null);
+  const rangeDays = range === "7D" ? 7 : range === "30D" ? 30 : 90;
+  const chartData = [...actual.slice(-rangeDays), ...forecast.slice(0, rangeDays)];
+  const tickInterval = Math.max(Math.floor(chartData.length / 7) - 1, 0);
+  const reserveLabel = `Safe reserve ${currency(safeReserve)}`;
   return (
     <div
       className={
@@ -38,11 +57,11 @@ export function CashFlowChart({
           <p>
             {variant === "full"
               ? "Actual balance, expected settlements, and projected outflows."
-              : "Balance movement and 30-day forecast"}
+              : `Balance movement · ${range} actual and forecast view`}
           </p>
         </div>
         <div className="segmented-control">
-          {["7D", "30D", "90D"].map(item => (
+          {(["7D", "30D", "90D"] as const).map(item => (
             <button
               key={item}
               onClick={() => setRange(item)}
@@ -70,7 +89,7 @@ export function CashFlowChart({
       <div className="chart-frame">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={cashFlowData}
+            data={chartData}
             margin={{ top: 18, right: 22, bottom: 4, left: -7 }}
           >
             <defs>
@@ -89,10 +108,10 @@ export function CashFlowChart({
               strokeDasharray="3 3"
             />
             <XAxis
-              dataKey="date"
+              dataKey="displayDate"
               tickLine={false}
               axisLine={false}
-              interval={variant === "full" ? 0 : 1}
+              interval={tickInterval}
               tick={{ fill: "#8A91A5", fontSize: 11, fontFamily: "Manrope" }}
             />
             <YAxis
@@ -108,11 +127,11 @@ export function CashFlowChart({
               cursor={{ stroke: "#C8CCDA", strokeDasharray: "3 3" }}
             />
             <ReferenceLine
-              y={100000}
+              y={safeReserve}
               stroke="#F59E0B"
               strokeDasharray="4 5"
               label={{
-                value: "Safe reserve ₹1L",
+                value: reserveLabel,
                 position: "insideTopLeft",
                 fill: "#B77900",
                 fontSize: 11,
@@ -142,18 +161,24 @@ export function CashFlowChart({
               animationDuration={1000}
               animationEasing="ease-out"
             />
-            <ReferenceLine x="Sep 12" stroke="#DC2626" strokeDasharray="3 3" />
+            {riskDate && (
+              <ReferenceLine
+                x={new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(riskDate))}
+                stroke="#DC2626"
+                strokeDasharray="3 3"
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <div className="forecast-callout">
+      {riskDate && <div className="forecast-callout">
         <span className="pulse-dot" />
         <div>
-          <strong>Sep 12 · Projected balance {currency(58400)}</strong>
+          <strong>{new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(riskDate))} · Forecast risk point</strong>
           <p>Forecast falls below your safe reserve.</p>
         </div>
         <span className="forecast-label">FORECAST</span>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -172,7 +197,7 @@ function CashTooltip({
   return (
     <div className="chart-tooltip">
       <span>{label}</span>
-      <strong>{value ? currency(value) : "—"}</strong>
+      <strong>{value != null ? currency(value) : "—"}</strong>
       <small>
         {payload.some(item => item.name === "forecast")
           ? "Projected balance"

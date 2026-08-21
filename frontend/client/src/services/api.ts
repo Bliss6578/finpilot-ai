@@ -109,6 +109,47 @@ export type SyncResult = {
   warnings?: string[];
   synced_at: string;
 };
+export type CashflowPoint = {
+  date: string;
+  actual: number | null;
+  forecast: number | null;
+  lower: number | null;
+  upper: number | null;
+  inflow: number;
+  outflow: number;
+  kind: "actual" | "forecast";
+};
+export type CashflowResponse = {
+  as_of: string;
+  currency: "INR";
+  mode: "test" | "live";
+  data_source: "razorpay_history" | "razorpay_plus_dataset" | "uci_online_retail_ii_demo";
+  summary: {
+    cash_available: number;
+    forecast_closing_balance: number;
+    lowest_balance: number;
+    lowest_balance_date: string;
+    safe_reserve: number;
+    risk_level: "low" | "medium" | "high";
+  };
+  drivers: {
+    forecast_inflow: number;
+    forecast_outflow: number;
+    return_rate: number;
+    variable_cost_ratio: number;
+    payment_fee_ratio: number;
+    fixed_daily_opex: number;
+  };
+  model: {
+    name: string;
+    trained_on: string;
+    training_period: [string, string];
+    tenant_history_days: number;
+    minimum_tenant_history_days: number;
+    limitations: string[];
+  };
+  points: CashflowPoint[];
+};
 export async function fetchDashboard() {
   return (await api.get<DashboardResponse>("/api/dashboard")).data;
 }
@@ -121,6 +162,13 @@ export async function fetchTransactions() {
 }
 export async function fetchRazorpayStatus() {
   return (await api.get<RazorpayStatus>("/api/razorpay/status")).data;
+}
+export async function fetchCashflow(historyDays = 60, forecastDays = 30) {
+  return (
+    await api.get<CashflowResponse>("/api/cashflow", {
+      params: { history_days: historyDays, forecast_days: forecastDays },
+    })
+  ).data;
 }
 export async function syncRazorpay() {
   return (await api.post<SyncResult>("/api/razorpay/sync")).data;

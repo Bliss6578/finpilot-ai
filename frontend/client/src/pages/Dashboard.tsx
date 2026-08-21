@@ -18,7 +18,9 @@ import {
 } from "@/data/mockData";
 import {
   fetchDashboard,
+  fetchCashflow,
   type ApiTransaction,
+  type CashflowResponse,
   type DashboardResponse,
 } from "@/services/api";
 
@@ -44,12 +46,17 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardResponse>(mockDashboard);
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState(false);
+  const [cashflow, setCashflow] = useState<CashflowResponse | null>(null);
   useEffect(() => {
     if (demoMode) return;
     fetchDashboard()
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => {
+    if (demoMode) return;
+    fetchCashflow(90, 90).then(setCashflow).catch(() => undefined);
   }, []);
   const recent: (ApiTransaction | (typeof mockTransactions)[number])[] =
     demoMode ? mockTransactions.slice(0, 5) : data.recent_transactions;
@@ -106,14 +113,14 @@ export default function Dashboard() {
           <div>
             <SectionLabel>Financial health</SectionLabel>
             <h2>Excellent condition</h2>
-            <p>Forecast metrics remain in demo mode.</p>
-            <p className="health-improved">Transaction metrics are live</p>
+            <p>{cashflow?.data_source === "razorpay_history" ? "Forecast is personalized from workspace history." : cashflow?.data_source === "razorpay_plus_dataset" ? "Current Razorpay activity is blended with the retail model until enough history is available." : "Forecast uses the isolated retail dataset prior."}</p>
+            <p className="health-improved">Cash-flow model is active</p>
           </div>
         </div>
         <div className="health-right">
           <div className="health-right-head">
             <h3>What shapes your score</h3>
-            <span>Forecast engine coming next</span>
+            <span>{cashflow ? "Dataset model active" : "Loading forecast evidence"}</span>
           </div>
           <div className="health-metrics">
             {healthMetrics.map(metric => (
@@ -152,17 +159,16 @@ export default function Dashboard() {
       </section>
       <section className="dashboard-primary-grid">
         <Panel>
-          <CashFlowChart />
+          <CashFlowChart data={cashflow?.points} safeReserve={cashflow?.summary.safe_reserve} riskDate={cashflow?.summary.risk_level === "low" ? undefined : cashflow?.summary.lowest_balance_date} />
         </Panel>
         <div className="decision-stack">
           <InsightCard
             tone="critical"
             icon={<CircleAlert />}
-            title="Cash flow warning"
+            title={cashflow?.summary.risk_level === "low" ? "Cash reserve protected" : "Cash flow warning"}
             action={<Link href="/cash-flow">View forecast</Link>}
           >
-            Forecast information remains simulated until the forecasting service
-            is connected.
+            {cashflow ? `${cashflow.data_source === "razorpay_history" ? "Workspace" : cashflow.data_source === "razorpay_plus_dataset" ? "Razorpay + dataset" : "Dataset-backed demo"} forecast closes at ${currency(cashflow.summary.forecast_closing_balance)}.` : "FinPilot is loading the dataset-backed forecast."}
           </InsightCard>
           <InsightCard
             tone="warning"
