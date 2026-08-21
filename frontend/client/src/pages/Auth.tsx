@@ -16,10 +16,14 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
     email: "",
     password: "",
   });
+  const requestedNext = new URLSearchParams(window.location.search).get("next");
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+    ? requestedNext
+    : "/dashboard";
 
   useEffect(() => {
-    if (!loading && session) navigate("/dashboard", { replace: true });
-  }, [loading, session, navigate]);
+    if (!loading && session) navigate(nextPath, { replace: true });
+  }, [loading, session, navigate, nextPath]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -31,7 +35,7 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
       } else {
         await login(values.email, values.password);
       }
-      navigate("/dashboard", { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (reason) {
       if (axios.isAxiosError(reason)) {
         if (reason.code === "ECONNABORTED") {
@@ -92,6 +96,7 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
                 <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff /> : <Eye />}</button>
               </div>
             </label>
+            {mode === "signin" && <Link href="/forgot-password" className="forgot-password-link">Forgot password?</Link>}
             {error && <div className="auth-error">{error}</div>}
             <button className="auth-submit" disabled={submitting}>
               {submitting ? "Securing workspace…" : mode === "signup" ? "Create FinPilot account" : "Sign in"}

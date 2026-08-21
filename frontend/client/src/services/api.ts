@@ -122,6 +122,27 @@ export async function revokeOtherSessions() {
     )
   ).data;
 }
+export async function requestEmailVerification() {
+  return (
+    await api.post<{ status: "sent" | "recently_sent" | "already_verified" }>(
+      "/api/auth/email/verification/request"
+    )
+  ).data;
+}
+export async function confirmEmailVerification(token: string) {
+  return (
+    await api.post<AuthSession>("/api/auth/email/verification/confirm", { token })
+  ).data;
+}
+export async function requestPasswordReset(email: string) {
+  await api.post("/api/auth/password/forgot", { email });
+}
+export async function resetPassword(token: string, newPassword: string) {
+  await api.post("/api/auth/password/reset", {
+    token,
+    new_password: newPassword,
+  });
+}
 export async function beginRazorpayOAuth() {
   return (
     await api.get<{ authorization_url: string }>(

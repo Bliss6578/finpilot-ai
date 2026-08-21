@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import Transactions from "./pages/Transactions";
 import Home from "./pages/Home";
 import AuthPage from "./pages/Auth";
+import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from "./pages/AccountRecovery";
 import {
   AboutPage,
   ContactPage,
@@ -51,6 +52,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/signin" component={() => <AuthPage mode="signin" />} />
       <Route path="/signup" component={() => <AuthPage mode="signup" />} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/pricing" component={PricingPage} />

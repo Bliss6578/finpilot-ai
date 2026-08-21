@@ -24,6 +24,10 @@ services:
         value: finpilot_session
       - key: SESSION_DAYS
         value: "30"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: FinPilot <onboarding@resend.dev>
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET

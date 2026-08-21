@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     session_cookie_name: str = "finpilot_session"
     session_days: int = 30
     render_external_hostname: str = ""
+    resend_api_key: str = ""
+    email_from: str = "FinPilot <onboarding@resend.dev>"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -53,6 +55,10 @@ class Settings(BaseSettings):
     @property
     def frontend_origin(self) -> str:
         return self.frontend_url.rstrip("/")
+
+    @property
+    def email_configured(self) -> bool:
+        return self.resend_api_key.startswith("re_") and bool(self.email_from)
 
 
 @lru_cache

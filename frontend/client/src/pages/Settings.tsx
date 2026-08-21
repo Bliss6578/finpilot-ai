@@ -1,11 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { Check, KeyRound, Link2, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
+import { Check, KeyRound, Link2, LogOut, MailCheck, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
 import {
   fetchRazorpayStatus,
   beginRazorpayOAuth,
   revokeOtherSessions,
+  requestEmailVerification,
   syncRazorpay,
   type RazorpayStatus,
 } from "@/services/api";
@@ -27,6 +28,7 @@ export default function Settings() {
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
   const [changingPassword, setChangingPassword] = useState(false);
   const [revokingSessions, setRevokingSessions] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     "Cash flow risks": true,
     "Payment failures": true,
@@ -76,6 +78,21 @@ export default function Settings() {
       toast.error("Unable to revoke other sessions");
     } finally {
       setRevokingSessions(false);
+    }
+  };
+  const sendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      const result = await requestEmailVerification();
+      toast.success(result.status === "recently_sent" ? "Verification email already sent" : "Verification email sent", {
+        description: `Check ${session?.user.email}. The secure link expires after 24 hours.`,
+      });
+    } catch (reason: any) {
+      toast.error("Unable to send verification email", {
+        description: reason?.response?.data?.detail ?? "Please try again shortly.",
+      });
+    } finally {
+      setSendingVerification(false);
     }
   };
   const refreshStatus = async () => {
@@ -198,6 +215,10 @@ export default function Settings() {
             <SectionLabel>Account access</SectionLabel>
             <h2>{session?.user.full_name}</h2>
             <p>{session?.user.email} · {session?.business.role} of {session?.business.name}</p>
+            <div className={`email-verification-status ${session?.user.email_verified ? "verified" : "pending"}`}>
+              <div><MailCheck /><span><strong>{session?.user.email_verified ? "Email verified" : "Email verification pending"}</strong><small>{session?.user.email_verified ? "Your account email has been confirmed." : "Verify your email to secure account recovery."}</small></span></div>
+              {!session?.user.email_verified && <button type="button" className="button-secondary" onClick={() => void sendVerification()} disabled={sendingVerification}>{sendingVerification ? "Sending…" : "Send verification email"}</button>}
+            </div>
             <form className="account-security-form" onSubmit={updatePassword}>
               <div className="setting-grid">
                 <label className="setting-field">

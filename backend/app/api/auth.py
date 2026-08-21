@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import secrets
 import uuid
+import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -14,11 +15,13 @@ from sqlalchemy.orm import Session
 from app.auth import AuthContext, require_auth, require_frontend_request
 from app.config import Settings, get_settings
 from app.database import get_db
-from app.models import AuthSession, Business, BusinessMember, RazorpayConnection, User
+from app.models import AccountToken, AuthSession, Business, BusinessMember, RazorpayConnection, User
 from app.security import hash_password, hash_token, normalize_email, verify_password
+from app.services.email import EmailSender, get_email_sender
 
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
 
 
 class SignupRequest(BaseModel):
@@ -35,6 +38,18 @@ class LoginRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
+
+
+class TokenRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=256)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=320)
+
+
+class ResetPasswordRequest(TokenRequest):
     new_password: str = Field(min_length=10, max_length=128)
 
 
@@ -91,12 +106,88 @@ def create_session(
     )
 
 
+def issue_account_token(
+    db: Session,
+    settings: Settings,
+    email_sender: EmailSender,
+    user: User,
+    purpose: str,
+    expires_in: timedelta,
+) -> bool:
+    now = datetime.now(timezone.utc)
+    latest = db.scalar(
+        select(AccountToken)
+        .where(
+            AccountToken.user_id == user.id,
+            AccountToken.purpose == purpose,
+            AccountToken.used_at.is_(None),
+            AccountToken.expires_at > now,
+        )
+        .order_by(AccountToken.created_at.desc())
+    )
+    if latest is not None:
+        created_at = latest.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if now - created_at < timedelta(seconds=60):
+            return False
+    db.execute(
+        delete(AccountToken).where(
+            AccountToken.user_id == user.id,
+            AccountToken.purpose == purpose,
+            AccountToken.used_at.is_(None),
+        )
+    )
+    raw_token = secrets.token_urlsafe(48)
+    record = AccountToken(
+        id=str(uuid.uuid4()),
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        purpose=purpose,
+        expires_at=now + expires_in,
+    )
+    db.add(record)
+    db.commit()
+    path = "verify-email" if purpose == "verify_email" else "reset-password"
+    try:
+        email_sender.send_account_link(
+            to=user.email,
+            name=user.full_name,
+            purpose=purpose,
+            url=f"{settings.frontend_origin}/{path}?token={raw_token}",
+        )
+    except Exception:
+        db.delete(record)
+        db.commit()
+        raise
+    return True
+
+
+def valid_account_token(db: Session, raw_token: str, purpose: str) -> AccountToken:
+    record = db.scalar(
+        select(AccountToken).where(
+            AccountToken.token_hash == hash_token(raw_token),
+            AccountToken.purpose == purpose,
+            AccountToken.used_at.is_(None),
+        )
+    )
+    if record is None:
+        raise HTTPException(status_code=400, detail="This link is invalid or has already been used")
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This link has expired")
+    return record
+
+
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
 def signup(
     payload: SignupRequest,
     response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    email_sender: EmailSender = Depends(get_email_sender),
     _: None = Depends(require_frontend_request),
 ) -> dict:
     try:
@@ -140,6 +231,13 @@ def signup(
         db.rollback()
         raise HTTPException(status_code=409, detail="Unable to create this account") from exc
     create_session(response, db, settings, user, business)
+    if settings.email_configured:
+        try:
+            issue_account_token(
+                db, settings, email_sender, user, "verify_email", timedelta(hours=24)
+            )
+        except Exception:
+            logger.exception("Unable to send signup verification email")
     connection = db.scalar(select(RazorpayConnection).where(RazorpayConnection.business_id == business.id))
     return context_json(user, business, membership, bool(connection and connection.status == "connected"))
 
@@ -259,3 +357,112 @@ def revoke_other_sessions(
     )
     db.commit()
     return {"revoked_sessions": result.rowcount or 0}
+
+
+@router.post("/email/verification/request", status_code=status.HTTP_202_ACCEPTED)
+def request_email_verification(
+    context: AuthContext = Depends(require_auth),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    email_sender: EmailSender = Depends(get_email_sender),
+    _: None = Depends(require_frontend_request),
+) -> dict[str, str]:
+    if context.user.email_verified:
+        return {"status": "already_verified"}
+    if not settings.email_configured:
+        raise HTTPException(status_code=503, detail="Email delivery is not configured")
+    try:
+        sent = issue_account_token(
+            db, settings, email_sender, context.user, "verify_email", timedelta(hours=24)
+        )
+    except Exception as exc:
+        logger.exception("Unable to send verification email")
+        raise HTTPException(status_code=502, detail="Unable to send verification email") from exc
+    return {"status": "sent" if sent else "recently_sent"}
+
+
+@router.post("/email/verification/confirm")
+def confirm_email_verification(
+    payload: TokenRequest,
+    context: AuthContext = Depends(require_auth),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_frontend_request),
+) -> dict:
+    token = valid_account_token(db, payload.token, "verify_email")
+    if token.user_id != context.user.id:
+        raise HTTPException(status_code=403, detail="This link belongs to another account")
+    token.used_at = datetime.now(timezone.utc)
+    context.user.email_verified = True
+    db.commit()
+    connection = db.scalar(
+        select(RazorpayConnection).where(RazorpayConnection.business_id == context.business.id)
+    )
+    return context_json(
+        context.user,
+        context.business,
+        context.membership,
+        bool(connection and connection.status == "connected"),
+    )
+
+
+@router.post("/password/forgot", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    email_sender: EmailSender = Depends(get_email_sender),
+    _: None = Depends(require_frontend_request),
+) -> dict[str, str]:
+    if not settings.email_configured:
+        raise HTTPException(status_code=503, detail="Email delivery is not configured")
+    try:
+        email = normalize_email(payload.email)
+    except ValueError:
+        return {"status": "accepted"}
+    user = db.scalar(select(User).where(User.email == email, User.is_active.is_(True)))
+    if user is not None:
+        try:
+            issue_account_token(
+                db, settings, email_sender, user, "reset_password", timedelta(hours=1)
+            )
+        except Exception:
+            logger.exception("Unable to send password reset email")
+    return {"status": "accepted"}
+
+
+@router.post("/password/reset", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(
+    payload: ResetPasswordRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
+) -> Response:
+    token = valid_account_token(db, payload.token, "reset_password")
+    user = db.get(User, token.user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=400, detail="This link is invalid")
+    try:
+        user.password_hash = hash_password(payload.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    now = datetime.now(timezone.utc)
+    token.used_at = now
+    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    db.execute(
+        delete(AccountToken).where(
+            AccountToken.user_id == user.id,
+            AccountToken.purpose == "reset_password",
+            AccountToken.used_at.is_(None),
+            AccountToken.id != token.id,
+        )
+    )
+    db.commit()
+    response.delete_cookie(
+        settings.session_cookie_name,
+        path="/",
+        secure=settings.app_env != "development",
+        samesite=settings.cookie_samesite,
+    )
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response

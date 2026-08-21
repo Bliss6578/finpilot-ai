@@ -189,6 +189,41 @@
   color: #8a7e75;
 }
 .password-field svg { width: 17px; }
+.forgot-password-link {
+  justify-self: end;
+  margin-top: -8px;
+  color: #65564b;
+  font-size: 13px;
+  font-weight: 700;
+}
+.recovery-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.76), transparent 34%),
+    linear-gradient(135deg, #d8c5af, #f4eee6 55%, #b8a08c);
+}
+.recovery-card {
+  width: min(100%, 560px);
+  padding: 42px;
+  border: 1px solid rgba(255,255,255,.76);
+  border-radius: 28px;
+  background: rgba(250,246,240,.92);
+  box-shadow: 0 28px 80px rgba(72,54,40,.18);
+}
+.recovery-logo { color: #4e4138; margin-bottom: 46px; }
+.recovery-card h1 { margin: 12px 0 10px; color: #211c18; font-size: clamp(34px, 6vw, 58px); line-height: .98; letter-spacing: -.055em; }
+.recovery-card > p, .recovery-result p { color: #796d64; line-height: 1.65; }
+.recovery-form { display: grid; gap: 17px; margin: 28px 0 20px; }
+.recovery-form label { display: grid; gap: 8px; color: #574d46; font-size: 13px; font-weight: 800; }
+.recovery-form input { width: 100%; height: 56px; padding: 0 16px; border: 1px solid #d8cdc2; border-radius: 14px; background: #fffdf9; color: #241f1b; font-size: 16px; outline: 0; }
+.recovery-form input:focus { border-color: #806d5e; box-shadow: 0 0 0 4px rgba(128,109,94,.1); }
+.recovery-back { display: inline-block; margin-top: 18px; color: #5d5047; font-weight: 750; }
+.recovery-result { padding: 28px 0 14px; text-align: center; }
+.recovery-result > span, .recovery-mark { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 22px; border-radius: 50%; background: #e4f3e8; color: #287a43; }
+.recovery-result svg { width: 27px; height: 27px; }
 .auth-submit {
   height: 56px;
   display: flex;
@@ -2490,6 +2525,30 @@ a {
 .account-security-form {
   display: grid;
   gap: 16px;
+}
+.email-verification-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 13px;
+  border: 1px solid #eadbc9;
+  border-radius: 10px;
+  background: #fffaf3;
+}
+.email-verification-status.verified { border-color: #d3ead9; background: #f7fff9; }
+.email-verification-status > div { display: flex; align-items: center; gap: 10px; }
+.email-verification-status svg { width: 20px; color: #8d725d; }
+.email-verification-status.verified svg { color: #27804a; }
+.email-verification-status span { display: grid; gap: 2px; }
+.email-verification-status strong { font-size: 11px; color: #3e372f; }
+.email-verification-status small { font-size: 10px; color: #81776e; }
+@media (max-width: 720px) {
+  .recovery-page { padding: 16px; }
+  .recovery-card { padding: 30px 22px; border-radius: 22px; }
+  .email-verification-status { align-items: stretch; flex-direction: column; }
+  .email-verification-status .button-secondary { justify-content: center; width: 100%; }
 }
 .account-security-form .setting-field span {
   display: block;
