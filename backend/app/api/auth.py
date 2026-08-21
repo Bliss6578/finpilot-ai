@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,11 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(min_length=5, max_length=320)
     password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
 
 
 def slugify(value: str) -> str:
@@ -202,3 +207,55 @@ def logout(
     )
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    response: Response,
+    context: AuthContext = Depends(require_auth),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
+) -> dict:
+    if not verify_password(payload.current_password, context.user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    try:
+        context.user.password_hash = hash_password(payload.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    # Password changes revoke every existing session. A fresh session is then
+    # issued for this browser so the user is not unexpectedly signed out here.
+    db.execute(delete(AuthSession).where(AuthSession.user_id == context.user.id))
+    db.commit()
+    create_session(response, db, settings, context.user, context.business)
+    connection = db.scalar(
+        select(RazorpayConnection).where(RazorpayConnection.business_id == context.business.id)
+    )
+    return context_json(
+        context.user,
+        context.business,
+        context.membership,
+        bool(connection and connection.status == "connected"),
+    )
+
+
+@router.post("/sessions/revoke-others")
+def revoke_other_sessions(
+    request: Request,
+    context: AuthContext = Depends(require_auth),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    _: None = Depends(require_frontend_request),
+) -> dict[str, int]:
+    raw_token = request.cookies.get(settings.session_cookie_name)
+    current_token_hash = hash_token(raw_token) if raw_token else ""
+    result = db.execute(
+        delete(AuthSession).where(
+            AuthSession.user_id == context.user.id,
+            AuthSession.token_hash != current_token_hash,
+        )
+    )
+    db.commit()
+    return {"revoked_sessions": result.rowcount or 0}

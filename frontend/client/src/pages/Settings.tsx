@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { Check, Link2, LogOut, RefreshCw } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
+import { Check, KeyRound, Link2, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
 import {
   fetchRazorpayStatus,
   beginRazorpayOAuth,
+  revokeOtherSessions,
   syncRazorpay,
   type RazorpayStatus,
 } from "@/services/api";
@@ -19,10 +20,13 @@ const notifications = [
   "Weekly finance report",
 ];
 export default function Settings() {
-  const { session, logout } = useAuth();
+  const { session, logout, changePassword } = useAuth();
   const [mode, setMode] = useState("Advisor");
   const [syncing, setSyncing] = useState(false);
   const [connection, setConnection] = useState<RazorpayStatus | null>(null);
+  const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [revokingSessions, setRevokingSessions] = useState(false);
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     "Cash flow risks": true,
     "Payment failures": true,
@@ -36,6 +40,42 @@ export default function Settings() {
       await logout();
     } finally {
       window.location.assign("/signin");
+    }
+  };
+  const updatePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    if (passwords.next !== passwords.confirm) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await changePassword(passwords.current, passwords.next);
+      setPasswords({ current: "", next: "", confirm: "" });
+      toast.success("Password updated", {
+        description: "Other signed-in devices have been securely signed out.",
+      });
+    } catch (reason: any) {
+      toast.error("Unable to change password", {
+        description: reason?.response?.data?.detail ?? "Please check your current password and try again.",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+  const revokeSessions = async () => {
+    setRevokingSessions(true);
+    try {
+      const result = await revokeOtherSessions();
+      toast.success("Other sessions revoked", {
+        description: result.revoked_sessions
+          ? `${result.revoked_sessions} other session${result.revoked_sessions === 1 ? "" : "s"} signed out.`
+          : "No other signed-in devices were found.",
+      });
+    } catch {
+      toast.error("Unable to revoke other sessions");
+    } finally {
+      setRevokingSessions(false);
     }
   };
   const refreshStatus = async () => {
@@ -158,12 +198,33 @@ export default function Settings() {
             <SectionLabel>Account access</SectionLabel>
             <h2>{session?.user.full_name}</h2>
             <p>{session?.user.email} · {session?.business.role} of {session?.business.name}</p>
-            <button
-              className="button-secondary"
-              onClick={() => void signOut()}
-            >
-              <LogOut /> Sign out of FinPilot
-            </button>
+            <form className="account-security-form" onSubmit={updatePassword}>
+              <div className="setting-grid">
+                <label className="setting-field">
+                  <span>Current password</span>
+                  <input required type="password" autoComplete="current-password" value={passwords.current} onChange={event => setPasswords(current => ({ ...current, current: event.target.value }))} />
+                </label>
+                <label className="setting-field">
+                  <span>New password</span>
+                  <input required minLength={10} type="password" autoComplete="new-password" value={passwords.next} onChange={event => setPasswords(current => ({ ...current, next: event.target.value }))} />
+                </label>
+                <label className="setting-field">
+                  <span>Confirm new password</span>
+                  <input required minLength={10} type="password" autoComplete="new-password" value={passwords.confirm} onChange={event => setPasswords(current => ({ ...current, confirm: event.target.value }))} />
+                </label>
+              </div>
+              <div className="account-security-actions">
+                <button className="button-primary" type="submit" disabled={changingPassword}>
+                  <KeyRound /> {changingPassword ? "Updating…" : "Change password"}
+                </button>
+                <button className="button-secondary" type="button" onClick={() => void revokeSessions()} disabled={revokingSessions}>
+                  <ShieldCheck /> {revokingSessions ? "Checking…" : "Sign out other devices"}
+                </button>
+                <button className="button-secondary" type="button" onClick={() => void signOut()}>
+                  <LogOut /> Sign out of FinPilot
+                </button>
+              </div>
+            </form>
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Financial preferences</SectionLabel>

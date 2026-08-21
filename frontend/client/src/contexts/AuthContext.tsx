@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   fetchSession,
+  changePassword as requestChangePassword,
   signIn as requestSignIn,
   signOut as requestSignOut,
   signUp as requestSignUp,
@@ -27,6 +28,7 @@ type AuthValue = {
   login: (email: string, password: string) => Promise<AuthSession>;
   signup: (payload: SignupPayload) => Promise<AuthSession>;
   logout: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -71,6 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
           setSession(null);
         }
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        const next = await requestChangePassword(currentPassword, newPassword);
+        setSession(next);
       },
     }),
     [session, loading]

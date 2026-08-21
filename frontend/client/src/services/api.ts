@@ -105,6 +105,21 @@ export async function signUp(payload: {
 export async function signOut() {
   await api.post("/api/auth/logout");
 }
+export async function changePassword(currentPassword: string, newPassword: string) {
+  return (
+    await api.post<AuthSession>("/api/auth/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+  ).data;
+}
+export async function revokeOtherSessions() {
+  return (
+    await api.post<{ revoked_sessions: number }>(
+      "/api/auth/sessions/revoke-others"
+    )
+  ).data;
+}
 export async function beginRazorpayOAuth() {
   return (
     await api.get<{ authorization_url: string }>(
