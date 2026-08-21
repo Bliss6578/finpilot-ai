@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select
@@ -11,7 +12,7 @@ from app.api import razorpay_keys, routes
 from app.config import Settings, get_settings
 from app.database import Base, get_db
 from app.main import app
-from app.models import RazorpayConnection, WebhookEvent
+from app.models import RazorpayConnection, Transaction, WebhookEvent
 from app.security import decrypt_secret
 from app.services.razorpay import RazorpayService
 
@@ -202,6 +203,123 @@ def test_owner_can_manage_encrypted_test_keys_and_tenant_webhook(monkeypatch) ->
                     "X-Razorpay-Signature": signature(body, rotated_secret),
                 },
             ).status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_live_keys_require_confirmation_and_keep_test_and_live_ledgers_separate(monkeypatch) -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+
+    async def fake_validate(_key_id: str, _key_secret: str) -> None:
+        return None
+
+    monkeypatch.setattr(razorpay_keys, "validate_api_credentials", fake_validate)
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    settings = Settings(
+        app_env="development",
+        database_url="sqlite+pysqlite:///:memory:",
+        token_encryption_key="test-only-high-entropy-encryption-key",
+        render_external_hostname="finpilot-api.example.com",
+    )
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_settings] = lambda: settings
+    headers = {"X-FinPilot-Request": "1"}
+    try:
+        with TestClient(app) as client:
+            signup = client.post(
+                "/api/auth/signup",
+                headers=headers,
+                json={
+                    "full_name": "Live Mode Owner",
+                    "business_name": "Live Mode Business",
+                    "email": "live-mode@example.com",
+                    "password": "correct horse battery staple",
+                },
+            )
+            assert signup.status_code == 201
+            business_id = signup.json()["business"]["id"]
+
+            unconfirmed = client.post(
+                "/api/razorpay/api-keys/connect",
+                headers=headers,
+                json={"key_id": "rzp_live_merchant", "key_secret": "live-secret-value"},
+            )
+            assert unconfirmed.status_code == 422
+
+            live = client.post(
+                "/api/razorpay/api-keys/connect",
+                headers=headers,
+                json={
+                    "key_id": "rzp_live_merchant",
+                    "key_secret": "live-secret-value",
+                    "confirm_live_access": True,
+                },
+            )
+            assert live.status_code == 200
+            assert live.json()["mode"] == "live"
+            live_webhook_url = live.json()["webhook_url"]
+            assert live.json()["webhook_secret"]
+            assert client.get("/api/auth/me").json()["razorpay_mode"] == "live"
+
+            now = datetime.now(timezone.utc)
+            with Session(engine) as db:
+                db.add_all(
+                    [
+                        Transaction(
+                            business_id=business_id,
+                            mode="test",
+                            razorpay_payment_id="pay_shared_between_modes",
+                            amount_paise=10000,
+                            currency="INR",
+                            method="upi",
+                            status="captured",
+                            provider_created_at=now,
+                            raw_payload={},
+                        ),
+                        Transaction(
+                            business_id=business_id,
+                            mode="live",
+                            razorpay_payment_id="pay_shared_between_modes",
+                            amount_paise=25000,
+                            currency="INR",
+                            method="card",
+                            status="captured",
+                            provider_created_at=now,
+                            raw_payload={},
+                        ),
+                    ]
+                )
+                db.commit()
+
+            live_dashboard = client.get("/api/dashboard").json()
+            assert live_dashboard["mode"] == "live"
+            assert live_dashboard["revenue"] == 250.0
+            assert client.get("/api/transactions").json()["total"] == 1
+
+            test = client.post(
+                "/api/razorpay/api-keys/connect",
+                headers=headers,
+                json={"key_id": "rzp_test_merchant", "key_secret": "test-secret-value"},
+            )
+            assert test.status_code == 200
+            assert test.json()["mode"] == "test"
+            assert test.json()["webhook_url"] != live_webhook_url
+            assert test.json()["webhook_secret"]
+            test_dashboard = client.get("/api/dashboard").json()
+            assert test_dashboard["mode"] == "test"
+            assert test_dashboard["revenue"] == 100.0
+            assert client.get("/api/auth/me").json()["razorpay_mode"] == "test"
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)

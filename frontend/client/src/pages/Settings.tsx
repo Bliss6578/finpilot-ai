@@ -33,7 +33,7 @@ export default function Settings() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [revokingSessions, setRevokingSessions] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
-  const [apiKeys, setApiKeys] = useState({ keyId: "", keySecret: "" });
+  const [apiKeys, setApiKeys] = useState({ keyId: "", keySecret: "", confirmLive: false });
   const [connectingKeys, setConnectingKeys] = useState(false);
   const [disconnectingKeys, setDisconnectingKeys] = useState(false);
   const [rotatingWebhook, setRotatingWebhook] = useState(false);
@@ -142,8 +142,12 @@ export default function Settings() {
     event.preventDefault();
     setConnectingKeys(true);
     try {
-      const result = await connectRazorpayApiKeys(apiKeys.keyId.trim(), apiKeys.keySecret);
-      setApiKeys({ keyId: result.key_id, keySecret: "" });
+      const result = await connectRazorpayApiKeys(
+        apiKeys.keyId.trim(),
+        apiKeys.keySecret,
+        apiKeys.confirmLive
+      );
+      setApiKeys({ keyId: result.key_id, keySecret: "", confirmLive: false });
       if (result.webhook_secret) {
         setWebhookCredentials({
           webhook_url: result.webhook_url,
@@ -159,7 +163,7 @@ export default function Settings() {
         });
       }
       await Promise.all([refreshStatus(), refreshSession()]);
-      toast.success("Razorpay Test Mode connected", {
+      toast.success(`Razorpay ${result.mode === "live" ? "Live" : "Test"} Mode connected`, {
         description: initialSync
           ? `${initialSync.records?.payments ?? 0} existing payment${initialSync.records?.payments === 1 ? "" : "s"} imported. Copy the webhook details below for new events.`
           : result.webhook_secret
@@ -168,7 +172,7 @@ export default function Settings() {
       });
     } catch (reason: any) {
       toast.error("Unable to connect Razorpay", {
-        description: reason?.response?.data?.detail ?? "Check the Test Mode keys and try again.",
+        description: reason?.response?.data?.detail ?? "Check the Razorpay keys and try again.",
       });
     } finally {
       setConnectingKeys(false);
@@ -191,12 +195,12 @@ export default function Settings() {
     }
   };
   const disconnectApiKeys = async () => {
-    if (!window.confirm("Disconnect Razorpay Test Mode from this FinPilot workspace?")) return;
+    if (!window.confirm(`Disconnect Razorpay ${connection?.mode === "live" ? "Live" : "Test"} Mode from this FinPilot workspace?`)) return;
     setDisconnectingKeys(true);
     try {
       await disconnectRazorpayApiKeys();
       setWebhookCredentials(null);
-      setApiKeys({ keyId: "", keySecret: "" });
+      setApiKeys({ keyId: "", keySecret: "", confirmLive: false });
       await Promise.all([refreshStatus(), refreshSession()]);
       toast.success("Razorpay disconnected");
     } catch (reason: any) {
@@ -233,6 +237,7 @@ export default function Settings() {
         timeStyle: "short",
       })
     : "Never";
+  const isLiveKey = apiKeys.keyId.trim().startsWith("rzp_live_");
   return (
     <>
       <PageHeader
@@ -308,23 +313,23 @@ export default function Settings() {
             {(!connection?.connected || connection.connection_type === "api_key") && (
               <form className="api-key-connect-form" onSubmit={connectApiKeys}>
                 <div>
-                  <SectionLabel>{connection?.connected ? "Update test credentials" : "Connect without Partner approval"}</SectionLabel>
-                  <h3>Razorpay Test Mode API keys</h3>
-                  <p>Credentials are verified by Razorpay and the Key Secret is encrypted before storage.</p>
+                  <SectionLabel>{connection?.connected ? "Update Razorpay credentials" : "Connect without Partner approval"}</SectionLabel>
+                  <h3>Razorpay Test or Live API keys</h3>
+                  <p>Credentials are verified by Razorpay and the Key Secret is encrypted before storage. FinPilot never displays it again.</p>
                 </div>
                 <div className="api-key-fields">
                   <label className="setting-field">
-                    <span>Test Key ID</span>
+                    <span>Key ID</span>
                     <input
                       required
                       autoComplete="off"
-                      placeholder="rzp_test_..."
+                      placeholder="rzp_test_... or rzp_live_..."
                       value={apiKeys.keyId}
-                      onChange={event => setApiKeys(current => ({ ...current, keyId: event.target.value }))}
+                      onChange={event => setApiKeys(current => ({ ...current, keyId: event.target.value, confirmLive: false }))}
                     />
                   </label>
                   <label className="setting-field">
-                    <span>{connection?.connected ? "New Key Secret" : "Test Key Secret"}</span>
+                    <span>{connection?.connected ? "New Key Secret" : "Key Secret"}</span>
                     <input
                       required
                       type="password"
@@ -335,7 +340,17 @@ export default function Settings() {
                     />
                   </label>
                 </div>
-                <button className="button-primary" type="submit" disabled={connectingKeys}>
+                {isLiveKey && (
+                  <label className="live-key-confirmation">
+                    <input
+                      type="checkbox"
+                      checked={apiKeys.confirmLive}
+                      onChange={event => setApiKeys(current => ({ ...current, confirmLive: event.target.checked }))}
+                    />
+                    <span>I own this Razorpay account and authorize FinPilot to read its real payment, refund and settlement data.</span>
+                  </label>
+                )}
+                <button className="button-primary" type="submit" disabled={connectingKeys || (isLiveKey && !apiKeys.confirmLive)}>
                   <KeyRound /> {connectingKeys ? "Verifying…" : connection?.connected ? "Update encrypted keys" : "Verify and connect"}
                 </button>
               </form>
@@ -345,7 +360,7 @@ export default function Settings() {
                 <div>
                   <SectionLabel>Per-business webhook</SectionLabel>
                   <h3>Connect real-time events</h3>
-                  <p>Use this URL only for this FinPilot workspace.</p>
+                  <p>Add this URL and the secret below to Razorpay {connection.mode === "live" ? "Live" : "Test"} Mode. Razorpay keeps Test and Live webhooks separate.</p>
                 </div>
                 <div className="credential-row">
                   <span>Webhook URL</span>
@@ -366,11 +381,9 @@ export default function Settings() {
                 </button>
               </div>
             )}
-            {!connection?.connected && (
-              <div className="connection-notice">
-                Beta access accepts Test Mode keys only. Live merchant connections will use Razorpay Partner OAuth after approval.
-              </div>
-            )}
+            <div className="connection-notice">
+              Direct Live keys are an owner-only transition option. Razorpay Partner OAuth remains the recommended production connection for a multi-client platform.
+            </div>
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Account access</SectionLabel>

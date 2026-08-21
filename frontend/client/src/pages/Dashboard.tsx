@@ -82,7 +82,7 @@ export default function Dashboard() {
           <p>
             {demoMode
               ? "Demo Mode is active."
-              : `${data.transaction_counts.total} Test Mode payment attempts are available for analysis.`}
+              : `${data.transaction_counts.total} ${data.mode === "live" ? "Live Mode" : "Test Mode"} payment attempts are available for analysis.`}
           </p>
         </div>
         <div className="live-pill">

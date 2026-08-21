@@ -71,12 +71,15 @@ export default function Transactions() {
   const [selected, setSelected] = useState<TransactionView | null>(null);
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState<string | null>(null);
+  const [razorpayMode, setRazorpayMode] = useState<"test" | "live">("test");
   const load = async () => {
     if (demoMode) return;
     setLoading(true);
     setError(null);
     try {
-      setItems((await fetchTransactions()).items.map(normalizeTransaction));
+      const result = await fetchTransactions();
+      setItems(result.items.map(normalizeTransaction));
+      setRazorpayMode(result.mode);
     } catch {
       setError(
         "FinPilot could not reach the finance API. Confirm that the backend is running on port 8000."
@@ -114,7 +117,7 @@ export default function Transactions() {
         description={
           demoMode
             ? "Demo Mode is active. These records are sample business data."
-            : "Live Test Mode records synchronized securely through the FinPilot backend."
+            : `${razorpayMode === "live" ? "Live Mode" : "Test Mode"} records synchronized securely through the FinPilot backend.`
         }
         action={
           <button

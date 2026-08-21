@@ -26,6 +26,13 @@ from app.services.razorpay import (
 router = APIRouter(prefix="/api")
 
 
+def financial_mode(db: Session, business_id: str) -> str:
+    connection = db.scalar(
+        select(RazorpayConnection).where(RazorpayConnection.business_id == business_id)
+    )
+    return connection.mode if connection and connection.status == "connected" else "test"
+
+
 def transaction_json(item: Transaction) -> dict[str, Any]:
     return {
         "id": item.razorpay_payment_id,
@@ -39,6 +46,7 @@ def transaction_json(item: Transaction) -> dict[str, Any]:
         "fee": item.fee_paise / 100,
         "tax": item.tax_paise / 100,
         "date": item.provider_created_at.isoformat(),
+        "mode": item.mode,
     }
 
 
@@ -54,6 +62,7 @@ def refund_json(item: Refund) -> dict[str, Any]:
         "speed_processed": item.speed_processed,
         "arn": item.arn,
         "date": item.provider_created_at.isoformat(),
+        "mode": item.mode,
     }
 
 
@@ -66,6 +75,7 @@ def settlement_json(item: Settlement) -> dict[str, Any]:
         "tax": item.tax_paise / 100,
         "utr": item.utr,
         "date": item.provider_created_at.isoformat(),
+        "mode": item.mode,
     }
 
 
@@ -94,7 +104,10 @@ def razorpay_status(
     )
     latest = db.scalar(
         select(SyncRun)
-        .where(SyncRun.business_id == context.business.id)
+        .where(
+            SyncRun.business_id == context.business.id,
+            SyncRun.mode == (connection.mode if connection else "test"),
+        )
         .order_by(desc(SyncRun.started_at))
         .limit(1)
     )
@@ -129,7 +142,7 @@ async def sync_razorpay(
     )
     if connection is None:
         raise HTTPException(status_code=409, detail="Connect this business to Razorpay first")
-    run = SyncRun(business_id=context.business.id, status="running")
+    run = SyncRun(business_id=context.business.id, mode=connection.mode, status="running")
     db.add(run)
     db.commit()
     try:
@@ -141,18 +154,18 @@ async def sync_razorpay(
             refunds = await service.fetch_refunds()
         except (httpx.HTTPError, ValueError):
             refunds = []
-            warnings.append("Refund history is unavailable for this Razorpay Test account")
+            warnings.append(f"Refund history is unavailable for this Razorpay {connection.mode.title()} account")
         try:
             settlements = await service.fetch_settlements()
         except (httpx.HTTPError, ValueError):
             settlements = []
-            warnings.append("Settlement history is unavailable for this Razorpay Test account")
+            warnings.append(f"Settlement history is unavailable for this Razorpay {connection.mode.title()} account")
         for payment in payments:
-            upsert_payment(db, payment, context.business.id)
+            upsert_payment(db, payment, context.business.id, connection.mode)
         for refund in refunds:
-            upsert_refund(db, refund, context.business.id)
+            upsert_refund(db, refund, context.business.id, connection.mode)
         for settlement in settlements:
-            upsert_settlement(db, settlement, context.business.id)
+            upsert_settlement(db, settlement, context.business.id, connection.mode)
         records_processed = len(payments) + len(refunds) + len(settlements)
         run.status = "completed"
         run.records_processed = records_processed
@@ -174,7 +187,7 @@ async def sync_razorpay(
         run.error_message = str(exc)[:500]
         run.finished_at = datetime.now(timezone.utc)
         db.commit()
-        raise HTTPException(status_code=502, detail="Unable to synchronize Razorpay test data") from exc
+        raise HTTPException(status_code=502, detail=f"Unable to synchronize Razorpay {connection.mode} data") from exc
 
 
 @router.get("/transactions")
@@ -184,17 +197,21 @@ def list_transactions(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    mode = financial_mode(db, context.business.id)
     items = db.scalars(
         select(Transaction)
-        .where(Transaction.business_id == context.business.id)
+        .where(Transaction.business_id == context.business.id, Transaction.mode == mode)
         .order_by(desc(Transaction.provider_created_at))
         .offset(offset)
         .limit(limit)
     ).all()
     total = db.scalar(
-        select(func.count()).select_from(Transaction).where(Transaction.business_id == context.business.id)
+        select(func.count()).select_from(Transaction).where(
+            Transaction.business_id == context.business.id,
+            Transaction.mode == mode,
+        )
     ) or 0
-    return {"items": [transaction_json(item) for item in items], "total": total, "limit": limit, "offset": offset}
+    return {"items": [transaction_json(item) for item in items], "total": total, "limit": limit, "offset": offset, "mode": mode}
 
 
 @router.get("/transactions/{payment_id}")
@@ -203,9 +220,11 @@ def get_transaction(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    mode = financial_mode(db, context.business.id)
     item = db.scalar(
         select(Transaction).where(
             Transaction.business_id == context.business.id,
+            Transaction.mode == mode,
             Transaction.razorpay_payment_id == payment_id,
         )
     )
@@ -221,12 +240,13 @@ def list_refunds(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    tenant = Refund.business_id == context.business.id
+    mode = financial_mode(db, context.business.id)
+    tenant = (Refund.business_id == context.business.id, Refund.mode == mode)
     items = db.scalars(
-        select(Refund).where(tenant).order_by(desc(Refund.provider_created_at)).offset(offset).limit(limit)
+        select(Refund).where(*tenant).order_by(desc(Refund.provider_created_at)).offset(offset).limit(limit)
     ).all()
-    total = db.scalar(select(func.count()).select_from(Refund).where(tenant)) or 0
-    return {"items": [refund_json(item) for item in items], "total": total, "limit": limit, "offset": offset}
+    total = db.scalar(select(func.count()).select_from(Refund).where(*tenant)) or 0
+    return {"items": [refund_json(item) for item in items], "total": total, "limit": limit, "offset": offset, "mode": mode}
 
 
 @router.get("/refunds/{refund_id}")
@@ -235,9 +255,11 @@ def get_refund(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    mode = financial_mode(db, context.business.id)
     item = db.scalar(
         select(Refund).where(
             Refund.business_id == context.business.id,
+            Refund.mode == mode,
             Refund.razorpay_refund_id == refund_id,
         )
     )
@@ -253,20 +275,22 @@ def list_settlements(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    tenant = Settlement.business_id == context.business.id
+    mode = financial_mode(db, context.business.id)
+    tenant = (Settlement.business_id == context.business.id, Settlement.mode == mode)
     items = db.scalars(
         select(Settlement)
-        .where(tenant)
+        .where(*tenant)
         .order_by(desc(Settlement.provider_created_at))
         .offset(offset)
         .limit(limit)
     ).all()
-    total = db.scalar(select(func.count()).select_from(Settlement).where(tenant)) or 0
+    total = db.scalar(select(func.count()).select_from(Settlement).where(*tenant)) or 0
     return {
         "items": [settlement_json(item) for item in items],
         "total": total,
         "limit": limit,
         "offset": offset,
+        "mode": mode,
     }
 
 
@@ -276,9 +300,11 @@ def get_settlement(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    mode = financial_mode(db, context.business.id)
     item = db.scalar(
         select(Settlement).where(
             Settlement.business_id == context.business.id,
+            Settlement.mode == mode,
             Settlement.razorpay_settlement_id == settlement_id,
         )
     )
@@ -292,63 +318,64 @@ def dashboard(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    tenant = Transaction.business_id == context.business.id
+    mode = financial_mode(db, context.business.id)
+    tenant = (Transaction.business_id == context.business.id, Transaction.mode == mode)
     revenue = db.scalar(
-        select(func.coalesce(func.sum(Transaction.amount_paise), 0)).where(tenant, Transaction.status == "captured")
+        select(func.coalesce(func.sum(Transaction.amount_paise), 0)).where(*tenant, Transaction.status == "captured")
     ) or 0
-    total = db.scalar(select(func.count()).select_from(Transaction).where(tenant)) or 0
+    total = db.scalar(select(func.count()).select_from(Transaction).where(*tenant)) or 0
     captured = db.scalar(
-        select(func.count()).select_from(Transaction).where(tenant, Transaction.status == "captured")
+        select(func.count()).select_from(Transaction).where(*tenant, Transaction.status == "captured")
     ) or 0
     failed = db.scalar(
-        select(func.count()).select_from(Transaction).where(tenant, Transaction.status == "failed")
+        select(func.count()).select_from(Transaction).where(*tenant, Transaction.status == "failed")
     ) or 0
     payment_fees = db.scalar(
-        select(func.coalesce(func.sum(Transaction.fee_paise), 0)).where(tenant, Transaction.status == "captured")
+        select(func.coalesce(func.sum(Transaction.fee_paise), 0)).where(*tenant, Transaction.status == "captured")
     ) or 0
-    refund_tenant = Refund.business_id == context.business.id
+    refund_tenant = (Refund.business_id == context.business.id, Refund.mode == mode)
     refunded = db.scalar(
-        select(func.count()).select_from(Refund).where(refund_tenant, Refund.status == "processed")
+        select(func.count()).select_from(Refund).where(*refund_tenant, Refund.status == "processed")
     ) or 0
     refund_amount = db.scalar(
         select(func.coalesce(func.sum(Refund.amount_paise), 0)).where(
-            refund_tenant,
+            *refund_tenant,
             Refund.status == "processed",
         )
     ) or 0
     pending_refund_amount = db.scalar(
         select(func.coalesce(func.sum(Refund.amount_paise), 0)).where(
-            refund_tenant,
+            *refund_tenant,
             Refund.status == "pending",
         )
     ) or 0
-    settlement_tenant = Settlement.business_id == context.business.id
+    settlement_tenant = (Settlement.business_id == context.business.id, Settlement.mode == mode)
     settled_amount = db.scalar(
         select(func.coalesce(func.sum(Settlement.amount_paise), 0)).where(
-            settlement_tenant,
+            *settlement_tenant,
             Settlement.status == "processed",
         )
     ) or 0
     pending_settlements = db.scalar(
         select(func.count()).select_from(Settlement).where(
-            settlement_tenant,
+            *settlement_tenant,
             Settlement.status == "created",
         )
     ) or 0
     completed_settlements = db.scalar(
         select(func.count()).select_from(Settlement).where(
-            settlement_tenant,
+            *settlement_tenant,
             Settlement.status == "processed",
         )
     ) or 0
     failed_settlements = db.scalar(
         select(func.count()).select_from(Settlement).where(
-            settlement_tenant,
+            *settlement_tenant,
             Settlement.status == "failed",
         )
     ) or 0
     recent = db.scalars(
-        select(Transaction).where(tenant).order_by(desc(Transaction.provider_created_at)).limit(5)
+        select(Transaction).where(*tenant).order_by(desc(Transaction.provider_created_at)).limit(5)
     ).all()
     success_rate = round(captured / total * 100, 1) if total else 0
     net_revenue = revenue - refund_amount - payment_fees
@@ -376,6 +403,7 @@ def dashboard(
         },
         "recent_transactions": [transaction_json(item) for item in recent],
         "data_source": "razorpay" if total else "empty",
+        "mode": mode,
     }
 
 
@@ -389,11 +417,11 @@ def process_webhook(event_id: int) -> None:
             refund = event.payload.get("payload", {}).get("refund", {}).get("entity")
             settlement = event.payload.get("payload", {}).get("settlement", {}).get("entity")
             if payment:
-                upsert_payment(db, payment, event.business_id)
+                upsert_payment(db, payment, event.business_id, event.mode)
             if refund:
-                upsert_refund(db, refund, event.business_id)
+                upsert_refund(db, refund, event.business_id, event.mode)
             if settlement:
-                upsert_settlement(db, settlement, event.business_id)
+                upsert_settlement(db, settlement, event.business_id, event.mode)
             event.status = "processed"
             event.processed_at = datetime.now(timezone.utc)
             db.commit()
@@ -413,6 +441,7 @@ def accept_webhook(
     existing = db.scalar(
         select(WebhookEvent).where(
             WebhookEvent.business_id == connection.business_id,
+            WebhookEvent.mode == connection.mode,
             WebhookEvent.provider_event_id == provider_event_id,
         )
     )
@@ -420,6 +449,7 @@ def accept_webhook(
         return {"accepted": True, "duplicate": True}
     event = WebhookEvent(
         business_id=connection.business_id,
+        mode=connection.mode,
         provider_event_id=provider_event_id,
         event_type=payload.get("event", "unknown"),
         payload=payload,

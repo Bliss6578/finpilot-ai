@@ -193,7 +193,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <i />
               {session?.razorpay_connected ? "Razorpay Connected" : "Razorpay not connected"}
             </span>
-            <small>{session?.razorpay_connected ? "Live business data" : "Connect in Settings"}</small>
+            <small>
+              {session?.razorpay_connected
+                ? `${session.razorpay_mode === "live" ? "Live" : "Test"} business data`
+                : "Connect in Settings"}
+            </small>
           </div>
           <div className="business-card">
             <div className="avatar">{initials}</div>
@@ -209,7 +213,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
           >
             <LogOut /> Sign out
           </button>
-          <span className="demo-badge">TEST MODE</span>
+          <span className={`demo-badge ${session?.razorpay_mode === "live" ? "live" : ""}`}>
+            {session?.razorpay_mode === "live" ? "LIVE MODE" : "TEST MODE"}
+          </span>
         </div>
       </aside>
       <div className="workspace">

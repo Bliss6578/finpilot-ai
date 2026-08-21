@@ -23,6 +23,7 @@ router = APIRouter(prefix="/api/razorpay/api-keys", tags=["razorpay-api-keys"])
 class APIKeyConnectionRequest(BaseModel):
     key_id: str = Field(min_length=12, max_length=80)
     key_secret: SecretStr = Field(min_length=8, max_length=256)
+    confirm_live_access: bool = False
 
 
 def require_owner(context: AuthContext) -> None:
@@ -47,10 +48,19 @@ async def connect_api_keys(
     require_owner(context)
     key_id = payload.key_id.strip()
     key_secret = payload.key_secret.get_secret_value().strip()
-    if not key_id.startswith("rzp_test_"):
+    if key_id.startswith("rzp_test_"):
+        mode = "test"
+    elif key_id.startswith("rzp_live_"):
+        mode = "live"
+    else:
         raise HTTPException(
             status_code=422,
-            detail="FinPilot beta currently accepts Razorpay Test Mode keys only",
+            detail="Enter a valid Razorpay Test or Live Key ID",
+        )
+    if mode == "live" and not payload.confirm_live_access:
+        raise HTTPException(
+            status_code=422,
+            detail="Confirm that you own this Razorpay account and authorize access to real financial data",
         )
     if not settings.token_encryption_key:
         raise HTTPException(status_code=503, detail="Secure credential encryption is not configured")
@@ -71,13 +81,14 @@ async def connect_api_keys(
         db.add(connection)
 
     new_webhook_secret: str | None = None
-    if not connection.webhook_token or not connection.webhook_secret_encrypted:
+    mode_changed = connection.mode != mode
+    if mode_changed or not connection.webhook_token or not connection.webhook_secret_encrypted:
         connection.webhook_token = secrets.token_urlsafe(32)
         new_webhook_secret = secrets.token_hex(32)
         connection.webhook_secret_encrypted = encrypt_secret(new_webhook_secret, settings.token_encryption_key)
 
     connection.auth_type = "api_key"
-    connection.mode = "test"
+    connection.mode = mode
     connection.status = "connected"
     connection.api_key_id = key_id
     connection.api_key_secret_encrypted = encrypt_secret(key_secret, settings.token_encryption_key)
@@ -91,7 +102,7 @@ async def connect_api_keys(
     db.refresh(connection)
     return {
         "connected": True,
-        "mode": "test",
+        "mode": mode,
         "key_id": key_id,
         "webhook_url": webhook_url(settings, connection),
         "webhook_secret": new_webhook_secret,
@@ -114,7 +125,7 @@ def rotate_webhook_secret(
         )
     )
     if connection is None:
-        raise HTTPException(status_code=409, detail="Connect Razorpay Test Mode keys first")
+        raise HTTPException(status_code=409, detail="Connect Razorpay API keys first")
     if not settings.token_encryption_key:
         raise HTTPException(status_code=503, detail="Secure credential encryption is not configured")
     if not connection.webhook_token:

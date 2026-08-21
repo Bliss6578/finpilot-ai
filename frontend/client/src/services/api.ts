@@ -32,6 +32,7 @@ export type ApiTransaction = {
   fee: number;
   tax: number;
   date: string;
+  mode?: "test" | "live";
 };
 export type DashboardResponse = {
   revenue: number;
@@ -57,6 +58,7 @@ export type DashboardResponse = {
   };
   recent_transactions: ApiTransaction[];
   data_source: "razorpay" | "empty";
+  mode?: "test" | "live";
 };
 export type RazorpayStatus = {
   connected: boolean;
@@ -70,7 +72,7 @@ export type RazorpayStatus = {
 };
 export type RazorpayAPIKeyConnection = {
   connected: true;
-  mode: "test";
+  mode: "test" | "live";
   key_id: string;
   webhook_url: string;
   webhook_secret: string | null;
@@ -94,6 +96,7 @@ export type AuthSession = {
     role: string;
   };
   razorpay_connected: boolean;
+  razorpay_mode: "test" | "live" | null;
 };
 export type SyncResult = {
   success: boolean;
@@ -111,7 +114,7 @@ export async function fetchDashboard() {
 }
 export async function fetchTransactions() {
   return (
-    await api.get<{ items: ApiTransaction[]; total: number }>(
+    await api.get<{ items: ApiTransaction[]; total: number; mode: "test" | "live" }>(
       "/api/transactions"
     )
   ).data;
@@ -182,11 +185,16 @@ export async function beginRazorpayOAuth() {
     )
   ).data;
 }
-export async function connectRazorpayApiKeys(keyId: string, keySecret: string) {
+export async function connectRazorpayApiKeys(
+  keyId: string,
+  keySecret: string,
+  confirmLiveAccess = false
+) {
   return (
     await api.post<RazorpayAPIKeyConnection>("/api/razorpay/api-keys/connect", {
       key_id: keyId,
       key_secret: keySecret,
+      confirm_live_access: confirmLiveAccess,
     })
   ).data;
 }

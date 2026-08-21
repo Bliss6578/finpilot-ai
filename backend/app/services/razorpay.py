@@ -122,11 +122,17 @@ def verify_webhook_signature(raw_body: bytes, signature: str, secret: str) -> bo
     return hmac.compare_digest(expected, signature)
 
 
-def upsert_payment(db: Session, payment: dict[str, Any], business_id: str = "demo-business") -> Transaction:
+def upsert_payment(
+    db: Session,
+    payment: dict[str, Any],
+    business_id: str = "demo-business",
+    mode: str = "test",
+) -> Transaction:
     payment_id = payment["id"]
     record = db.scalar(
         select(Transaction).where(
             Transaction.business_id == business_id,
+            Transaction.mode == mode,
             Transaction.razorpay_payment_id == payment_id,
         )
     )
@@ -150,7 +156,7 @@ def upsert_payment(db: Session, payment: dict[str, Any], business_id: str = "dem
         "raw_payload": payment,
     }
     if record is None:
-        record = Transaction(business_id=business_id, razorpay_payment_id=payment_id, **values)
+        record = Transaction(business_id=business_id, mode=mode, razorpay_payment_id=payment_id, **values)
         db.add(record)
     else:
         for key, value in values.items():
@@ -165,7 +171,12 @@ def provider_datetime(entity: dict[str, Any]) -> datetime:
     return datetime.now(timezone.utc)
 
 
-def upsert_refund(db: Session, refund: dict[str, Any], business_id: str = "demo-business") -> Refund:
+def upsert_refund(
+    db: Session,
+    refund: dict[str, Any],
+    business_id: str = "demo-business",
+    mode: str = "test",
+) -> Refund:
     refund_id = refund["id"]
     payment_id = refund.get("payment_id")
     if not payment_id:
@@ -173,6 +184,7 @@ def upsert_refund(db: Session, refund: dict[str, Any], business_id: str = "demo-
     record = db.scalar(
         select(Refund).where(
             Refund.business_id == business_id,
+            Refund.mode == mode,
             Refund.razorpay_refund_id == refund_id,
         )
     )
@@ -193,7 +205,7 @@ def upsert_refund(db: Session, refund: dict[str, Any], business_id: str = "demo-
         "raw_payload": refund,
     }
     if record is None:
-        record = Refund(business_id=business_id, razorpay_refund_id=refund_id, **values)
+        record = Refund(business_id=business_id, mode=mode, razorpay_refund_id=refund_id, **values)
         db.add(record)
     else:
         for key, value in values.items():
@@ -205,11 +217,13 @@ def upsert_settlement(
     db: Session,
     settlement: dict[str, Any],
     business_id: str = "demo-business",
+    mode: str = "test",
 ) -> Settlement:
     settlement_id = settlement["id"]
     record = db.scalar(
         select(Settlement).where(
             Settlement.business_id == business_id,
+            Settlement.mode == mode,
             Settlement.razorpay_settlement_id == settlement_id,
         )
     )
@@ -223,7 +237,12 @@ def upsert_settlement(
         "raw_payload": settlement,
     }
     if record is None:
-        record = Settlement(business_id=business_id, razorpay_settlement_id=settlement_id, **values)
+        record = Settlement(
+            business_id=business_id,
+            mode=mode,
+            razorpay_settlement_id=settlement_id,
+            **values,
+        )
         db.add(record)
     else:
         for key, value in values.items():

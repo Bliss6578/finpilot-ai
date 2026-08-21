@@ -58,7 +58,13 @@ def slugify(value: str) -> str:
     return (slug or "business")[:140]
 
 
-def context_json(user: User, business: Business, membership: BusinessMember, connected: bool) -> dict:
+def context_json(
+    user: User,
+    business: Business,
+    membership: BusinessMember,
+    connected: bool,
+    razorpay_mode: str | None = None,
+) -> dict:
     return {
         "user": {
             "id": user.id,
@@ -74,6 +80,7 @@ def context_json(user: User, business: Business, membership: BusinessMember, con
             "role": membership.role,
         },
         "razorpay_connected": connected,
+        "razorpay_mode": razorpay_mode if connected else None,
     }
 
 
@@ -239,7 +246,13 @@ def signup(
         except Exception:
             logger.exception("Unable to send signup verification email")
     connection = db.scalar(select(RazorpayConnection).where(RazorpayConnection.business_id == business.id))
-    return context_json(user, business, membership, bool(connection and connection.status == "connected"))
+    return context_json(
+        user,
+        business,
+        membership,
+        bool(connection and connection.status == "connected"),
+        connection.mode if connection else None,
+    )
 
 
 @router.post("/login")
@@ -267,7 +280,13 @@ def login(
         raise HTTPException(status_code=403, detail="Business workspace is unavailable")
     create_session(response, db, settings, user, business)
     connection = db.scalar(select(RazorpayConnection).where(RazorpayConnection.business_id == business.id))
-    return context_json(user, business, membership, bool(connection and connection.status == "connected"))
+    return context_json(
+        user,
+        business,
+        membership,
+        bool(connection and connection.status == "connected"),
+        connection.mode if connection else None,
+    )
 
 
 @router.get("/me")
@@ -280,6 +299,7 @@ def me(context: AuthContext = Depends(require_auth), db: Session = Depends(get_d
         context.business,
         context.membership,
         bool(connection and connection.status == "connected"),
+        connection.mode if connection else None,
     )
 
 
@@ -336,6 +356,7 @@ def change_password(
         context.business,
         context.membership,
         bool(connection and connection.status == "connected"),
+        connection.mode if connection else None,
     )
 
 
@@ -402,6 +423,7 @@ def confirm_email_verification(
         context.business,
         context.membership,
         bool(connection and connection.status == "connected"),
+        connection.mode if connection else None,
     )
 
 

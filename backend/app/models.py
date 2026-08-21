@@ -15,10 +15,13 @@ def utcnow() -> datetime:
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (UniqueConstraint("business_id", "razorpay_payment_id", name="uq_transaction_business_payment"),)
+    __table_args__ = (
+        UniqueConstraint("business_id", "mode", "razorpay_payment_id", name="uq_transaction_business_mode_payment"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
     razorpay_payment_id: Mapped[str] = mapped_column(String(64), index=True)
     razorpay_order_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     customer_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
@@ -38,10 +41,13 @@ class Transaction(Base):
 
 class Refund(Base):
     __tablename__ = "refunds"
-    __table_args__ = (UniqueConstraint("business_id", "razorpay_refund_id", name="uq_refund_business_refund"),)
+    __table_args__ = (
+        UniqueConstraint("business_id", "mode", "razorpay_refund_id", name="uq_refund_business_mode_refund"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
     razorpay_refund_id: Mapped[str] = mapped_column(String(64), index=True)
     razorpay_payment_id: Mapped[str] = mapped_column(String(64), index=True)
     amount_paise: Mapped[int] = mapped_column(BigInteger)
@@ -61,11 +67,12 @@ class Refund(Base):
 class Settlement(Base):
     __tablename__ = "settlements"
     __table_args__ = (
-        UniqueConstraint("business_id", "razorpay_settlement_id", name="uq_settlement_business_settlement"),
+        UniqueConstraint("business_id", "mode", "razorpay_settlement_id", name="uq_settlement_business_mode_settlement"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
     razorpay_settlement_id: Mapped[str] = mapped_column(String(64), index=True)
     amount_paise: Mapped[int] = mapped_column(BigInteger)
     status: Mapped[str] = mapped_column(String(32), index=True)
@@ -80,10 +87,13 @@ class Settlement(Base):
 
 class WebhookEvent(Base):
     __tablename__ = "webhook_events"
-    __table_args__ = (UniqueConstraint("business_id", "provider_event_id", name="uq_webhook_business_event"),)
+    __table_args__ = (
+        UniqueConstraint("business_id", "mode", "provider_event_id", name="uq_webhook_business_mode_event"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
     provider_event_id: Mapped[str] = mapped_column(String(160), index=True)
     event_type: Mapped[str] = mapped_column(String(100), index=True)
     status: Mapped[str] = mapped_column(String(24), default="received")
@@ -98,6 +108,7 @@ class SyncRun(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
     source: Mapped[str] = mapped_column(String(32), default="razorpay")
     status: Mapped[str] = mapped_column(String(24))
     records_processed: Mapped[int] = mapped_column(Integer, default=0)
