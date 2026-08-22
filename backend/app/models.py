@@ -227,6 +227,12 @@ class Expense(Base):
     amount_paise: Mapped[int] = mapped_column(BigInteger)
     expense_type: Mapped[str] = mapped_column(String(24), default="operating")
     recurring: Mapped[bool] = mapped_column(Boolean, default=False)
+    recurrence_frequency: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
+    recurrence_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    next_due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    parent_expense_id: Mapped[Optional[str]] = mapped_column(ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True, index=True)
+    vendor: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     expense_date: Mapped[date] = mapped_column(Date, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -312,3 +318,5 @@ class ApprovalRequest(Base):
     status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    executed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    execution_result: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

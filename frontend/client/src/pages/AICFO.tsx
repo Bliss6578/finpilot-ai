@@ -1,9 +1,9 @@
 /** AI CFO answers are rendered only from the authenticated workspace API. */
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Check, Database, RefreshCw, Send, Sparkles } from "lucide-react";
+import { Check, Database, Download, History, RefreshCw, Send, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import { Panel, SectionLabel } from "@/components/finpilot-ui";
-import { askAICFO, fetchAICFOContext, type AICFOContext, type AICFOResponse } from "@/services/api";
+import { askAICFO, downloadFinancialReport, fetchAICFOContext, fetchCFOConversation, fetchCFOConversations, type AICFOContext, type AICFOResponse } from "@/services/api";
 import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 
 type Message =
@@ -23,6 +23,7 @@ export default function AICFO() {
   const [context, setContext] = useState<AICFOContext | null>(null);
   const [thinking, setThinking] = useState(false);
   const [conversationId, setConversationId] = useState<string>();
+  const [conversations, setConversations] = useState<{ id: string; title: string; updated_at: string }[]>([]);
   const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -36,7 +37,8 @@ export default function AICFO() {
     }
   };
 
-  useEffect(() => { void loadContext(); }, []);
+  const loadConversations = async () => { try { setConversations((await fetchCFOConversations()).items); } catch { setConversations([]); } };
+  useEffect(() => { void loadContext(); void loadConversations(); }, []);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, thinking]);
@@ -52,7 +54,7 @@ export default function AICFO() {
       const response = await askAICFO(cleanQuestion, conversationId);
       setConversationId(response.conversation_id);
       setMessages(current => [...current, { role: "assistant", response }]);
-      await loadContext();
+      await Promise.all([loadContext(), loadConversations()]);
     } catch {
       setError("FinPilot could not complete that analysis. Refresh the financial context and try again.");
     } finally {
@@ -64,6 +66,8 @@ export default function AICFO() {
     event.preventDefault();
     void ask(draft);
   };
+  const openConversation = async (id: string) => { const saved = await fetchCFOConversation(id); setConversationId(id); setMessages(saved.messages.map(item => item.role === "user" ? { role: "user" as const, text: item.content } : { role: "assistant" as const, response: item.structured_content })); };
+  const exportReport = async () => { const blob = await downloadFinancialReport(30); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "finpilot-30d-financial-report.csv"; anchor.click(); URL.revokeObjectURL(url); };
   const lastAnswer = [...messages].reverse().find(
     (message): message is Extract<Message, { role: "assistant" }> => message.role === "assistant",
   );
@@ -106,6 +110,7 @@ export default function AICFO() {
         </form>
       </Panel>
       <aside className="ai-rail">
+        <Panel className="ai-rail-panel"><SectionLabel>Saved analyses</SectionLabel><div className="conversation-list">{conversations.slice(0, 6).map(item => <button key={item.id} onClick={() => void openConversation(item.id)} className={conversationId === item.id ? "active" : ""}><History /><span>{item.title}<small>{new Date(item.updated_at).toLocaleDateString("en-IN")}</small></span></button>)}</div><button className="button-secondary report-download" onClick={() => void exportReport()}><Download />Download 30-day report</button></Panel>
         <Panel className="ai-rail-panel">
           <SectionLabel>Verified data sources</SectionLabel><h3>Analysis is grounded in this business.</h3>
           <div className="ai-data-source"><div className="source-icon"><Database /></div><div><strong><RazorpayOfficialLink compact>Razorpay · {context?.mode ?? "test"} mode</RazorpayOfficialLink></strong><span>Payments, settlements and refunds</span></div></div>

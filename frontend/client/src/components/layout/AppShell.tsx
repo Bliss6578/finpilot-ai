@@ -10,6 +10,7 @@ import {
   ReceiptIndianRupee,
   Search,
   Settings,
+  ShieldAlert,
   Sparkles,
   ArrowUpRight,
   LogOut,
@@ -28,6 +29,7 @@ const navigation = [
   { href: "/ai-cfo", label: "AI CFO", icon: Sparkles },
   { href: "/scenario-lab", label: "Scenario Lab", icon: FlaskConical },
   { href: "/alerts", label: "Alerts", icon: Bell },
+  { href: "/intelligence", label: "Intelligence", icon: ShieldAlert },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -39,6 +41,7 @@ const pageTitles: Record<string, string> = {
   "/ai-cfo": "AI CFO",
   "/scenario-lab": "Scenario Lab",
   "/alerts": "Financial Alerts",
+  "/intelligence": "Intelligence",
   "/settings": "Settings",
 };
 
@@ -49,6 +52,7 @@ const pageDescriptions: Record<string, string> = {
   "/ai-cfo": "Turn live evidence into a clear financial recommendation.",
   "/scenario-lab": "Test the cash impact before committing to a decision.",
   "/alerts": "Prioritize the signals that can materially change cash.",
+  "/intelligence": "Detect leakage, reconcile settlements and approve safe actions.",
   "/settings": "Control the data, thresholds and operating posture.",
 };
 

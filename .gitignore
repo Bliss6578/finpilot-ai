@@ -25,6 +25,8 @@ build/
 .vercel/
 .manus-logs/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 
 # Editors, logs, and operating-system files
@@ -35,4 +37,3 @@ coverage/
 *.swp
 *.swo
 *~
-

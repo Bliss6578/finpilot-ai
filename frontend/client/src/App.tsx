@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect } from "react";
@@ -7,26 +7,27 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import AppShell from "./components/layout/AppShell";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import Alerts from "./pages/Alerts";
-import AICFO from "./pages/AICFO";
-import CashFlow from "./pages/CashFlow";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
-import ScenarioLab from "./pages/ScenarioLab";
-import Settings from "./pages/Settings";
-import Transactions from "./pages/Transactions";
-import Home from "./pages/Home";
-import AuthPage from "./pages/Auth";
-import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage } from "./pages/AccountRecovery";
-import {
-  AboutPage,
-  ContactPage,
-  DeliveryPolicyPage,
-  PricingPage,
-  PrivacyPolicyPage,
-  RefundPolicyPage,
-  TermsPage,
-} from "./pages/PublicInfo";
+const Home = lazy(() => import("./pages/Home"));
+const AuthPage = lazy(() => import("./pages/Auth"));
+const ForgotPasswordPage = lazy(() => import("./pages/AccountRecovery").then(module => ({ default: module.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./pages/AccountRecovery").then(module => ({ default: module.ResetPasswordPage })));
+const VerifyEmailPage = lazy(() => import("./pages/AccountRecovery").then(module => ({ default: module.VerifyEmailPage })));
+const AboutPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.AboutPage })));
+const ContactPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.ContactPage })));
+const DeliveryPolicyPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.DeliveryPolicyPage })));
+const PricingPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.PricingPage })));
+const PrivacyPolicyPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.PrivacyPolicyPage })));
+const RefundPolicyPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.RefundPolicyPage })));
+const TermsPage = lazy(() => import("./pages/PublicInfo").then(module => ({ default: module.TermsPage })));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const CashFlow = lazy(() => import("./pages/CashFlow"));
+const AICFO = lazy(() => import("./pages/AICFO"));
+const ScenarioLab = lazy(() => import("./pages/ScenarioLab"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const Intelligence = lazy(() => import("./pages/Intelligence"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 /** Flight Deck design reminder: persistent navigation keeps every page inside one coherent financial decision workspace. */
 function RoutedPage({ children }: { children: ReactNode }) {
@@ -118,6 +119,7 @@ function Router() {
           </RoutedPage>
         )}
       />
+      <Route path="/intelligence" component={() => <RoutedPage><Intelligence /></RoutedPage>} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -131,7 +133,7 @@ function App() {
         <TooltipProvider>
           <AuthProvider>
             <Toaster richColors position="top-right" />
-            <Router />
+            <Suspense fallback={<div className="auth-loading"><SparkLoader /> Loading workspace…</div>}><Router /></Suspense>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>

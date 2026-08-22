@@ -173,7 +173,7 @@ export type AICFOResponse = {
   actions: { label: string; action: string }[];
   tools_used: string[];
   engine: string;
-  scenario_result?: ScenarioResponse;
+  scenario_result?: ScenarioResult;
   llm?: { provider: "openai"; model: string; grounded: boolean; fallback: boolean };
   agent?: {
     plan: { domain: string; intent: string; period_days: number; tools: string[]; scenario_type?: string | null; scenario_parameters?: Record<string, number> | null };
@@ -220,7 +220,12 @@ export type ScenarioResult = {
 export type FinancialAlert = { id: string; type: string; severity: "critical" | "warning" | "info"; title: string; description: string; metric_value: number | null; baseline_value: number | null; status: string; evidence: Record<string, unknown>; created_at: string };
 export type ScenarioPreferences = { revenue?: number; expense?: number; monthly?: number; one_time?: number; hires?: number; salary?: number };
 export type BusinessProfile = { name: string; currency: string; industry: string | null; website: string | null; current_cash: number | null; monthly_budget: number | null; monthly_fixed_expenses: number | null; minimum_reserve: number; target_runway_months: number; target_growth_rate: number | null; risk_tolerance: "conservative" | "moderate" | "aggressive"; ai_control_mode: "observer" | "advisor" | "autopilot"; notification_preferences: Record<string, boolean>; scenario_preferences: ScenarioPreferences };
-export type ExpenseRecord = { id: string; category: string; description: string | null; amount: number; expense_type: string; recurring: boolean; expense_date: string };
+export type ExpenseRecord = { id: string; category: string; description: string | null; amount: number; expense_type: string; recurring: boolean; recurrence_frequency?: "weekly" | "monthly" | "quarterly" | "yearly" | null; recurrence_end_date?: string | null; next_due_date?: string | null; vendor?: string | null; notes?: string | null; expense_date: string };
+export type RevenueLeakResponse = { period_days: number; mode: string; potential_leak: number; gross_revenue: number; fee_rate: number; signals: { type: string; title: string; amount: number; count: number; confidence: "observed" | "provisional"; action: string }[]; methodology: string };
+export type SettlementIntelligence = { period_days: number; mode: string; status: "reconciled" | "attention"; expected_net_settlement: number; settled_amount: number; variance: number; pending_settlements: number; average_delay_days: number | null; maximum_delay_days: number | null; stale_captured_payments: number; limitations: string[] };
+export type AnomalyResult = { model: string; trained: boolean; observations: number; minimum_days?: number; anomalies: { date: string; score: number; net_cashflow: number; failure_rate: number; refund_rate: number }[] };
+export type Recommendation = { id: string; priority: "critical" | "high" | "medium"; title: string; impact: number; basis: string; action_type: "update_cash_policy" | "create_follow_up"; parameters: Record<string, unknown> };
+export type Approval = { id: string; action_type: string; title: string; parameters: Record<string, unknown>; status: string; created_at: string; resolved_at: string | null; executed_at: string | null; execution_result: Record<string, unknown> };
 export async function fetchDashboard() {
   return (await api.get<DashboardResponse>("/api/dashboard")).data;
 }
@@ -257,6 +262,16 @@ export async function fetchExpenses() { return (await api.get<{ items: ExpenseRe
 export async function createExpense(expense: Omit<ExpenseRecord, "id">) { return (await api.post<{ id: string; created: boolean }>("/api/v1/expenses", expense)).data; }
 export async function deleteExpense(expenseId: string) { return (await api.delete<{ deleted: boolean }>(`/api/v1/expenses/${expenseId}`)).data; }
 export async function fetchCFOConversation(conversationId: string) { return (await api.get<{ id: string; title: string; messages: { id: string; role: "user" | "assistant"; content: string; structured_content: AICFOResponse; created_at: string }[] }>(`/api/v1/cfo/conversations/${conversationId}`)).data; }
+export async function fetchCFOConversations() { return (await api.get<{ items: { id: string; title: string; created_at: string; updated_at: string }[] }>("/api/v1/cfo/conversations")).data; }
+export async function fetchRevenueLeaks() { return (await api.get<RevenueLeakResponse>("/api/v1/intelligence/revenue-leaks")).data; }
+export async function fetchSettlementIntelligence() { return (await api.get<SettlementIntelligence>("/api/v1/intelligence/settlements")).data; }
+export async function fetchAnomalies() { return (await api.get<AnomalyResult>("/api/v1/intelligence/anomalies")).data; }
+export async function fetchRecommendations() { return (await api.get<{ generated_at: string; items: Recommendation[] }>("/api/v1/recommendations")).data; }
+export async function fetchApprovals() { return (await api.get<{ items: Approval[] }>("/api/v1/approvals")).data; }
+export async function createApproval(recommendation: Recommendation) { return (await api.post<{ id: string; status: string }>("/api/v1/approvals", { action_type: recommendation.action_type, title: recommendation.title, parameters: recommendation.parameters })).data; }
+export async function decideApproval(id: string, decision: "approved" | "rejected") { return (await api.post<{ id: string; status: string; executed: boolean }>(`/api/v1/approvals/${id}/decision`, { decision })).data; }
+export function financialReportUrl(days = 30) { return `${apiBaseUrl}/api/v1/reports/financial-summary?days=${days}`; }
+export async function downloadFinancialReport(days = 30) { return (await api.get<Blob>("/api/v1/reports/financial-summary", { params: { days }, responseType: "blob" })).data; }
 export async function syncRazorpay() {
   return (await api.post<SyncResult>("/api/razorpay/sync")).data;
 }

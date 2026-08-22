@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     openai_timeout_seconds: float = 20.0
     openai_max_output_tokens: int = 900
     demo_mode: bool = False
+    rate_limit_per_minute: int = 180
+    auth_rate_limit_per_minute: int = 12
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -74,6 +76,17 @@ class Settings(BaseSettings):
     @property
     def openai_configured(self) -> bool:
         return self.openai_api_key.startswith("sk-")
+
+    def production_warnings(self) -> list[str]:
+        warnings: list[str] = []
+        if self.app_env == "production":
+            if self.database_url.startswith("sqlite"):
+                warnings.append("Production is using SQLite; configure managed PostgreSQL.")
+            if len(self.token_encryption_key) < 32:
+                warnings.append("TOKEN_ENCRYPTION_KEY must contain at least 32 characters.")
+            if not self.frontend_origin.startswith("https://"):
+                warnings.append("FRONTEND_URL must use HTTPS in production.")
+        return warnings
 
 
 @lru_cache

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from io import StringIO
+import csv
 from typing import Any, Literal, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
@@ -15,6 +18,10 @@ from app.database import get_db
 from app.models import ApprovalRequest, CFOConversation, CFOMessage, Expense, FinancialAlert
 from app.services.financial_engine import financial_summary, rebuild_daily_metrics, refresh_anomaly_alerts
 from app.services.scenarios import simulate
+from app.services.operational_intelligence import (
+    execute_approved_action, isolation_forest_anomalies, materialize_recurring_expenses,
+    recommendations, revenue_leaks, settlement_intelligence,
+)
 
 
 router = APIRouter(prefix="/api/v1", tags=["financial intelligence"])
@@ -41,6 +48,10 @@ class ExpenseCreate(BaseModel):
     amount: float = Field(gt=0)
     expense_type: Literal["operating", "payroll", "tax", "vendor", "capital", "other"] = "operating"
     recurring: bool = False
+    recurrence_frequency: Optional[Literal["weekly", "monthly", "quarterly", "yearly"]] = None
+    recurrence_end_date: Optional[date] = None
+    vendor: Optional[str] = Field(default=None, max_length=160)
+    notes: Optional[str] = Field(default=None, max_length=1000)
     expense_date: date
 
 
@@ -51,6 +62,12 @@ class ScenarioRequest(BaseModel):
 
 class ApprovalDecision(BaseModel):
     decision: Literal["approved", "rejected"]
+
+
+class ApprovalCreate(BaseModel):
+    action_type: Literal["update_cash_policy", "create_follow_up"]
+    title: str = Field(min_length=3, max_length=200)
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 def require_owner(context: AuthContext) -> None:
@@ -105,8 +122,10 @@ def list_expenses(
     limit: int = Query(100, ge=1, le=500),
     context: AuthContext = Depends(require_auth), db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    materialize_recurring_expenses(db, context.business.id)
+    db.commit()
     items = db.scalars(select(Expense).where(Expense.business_id == context.business.id).order_by(desc(Expense.expense_date)).limit(limit)).all()
-    return {"items": [{"id": item.id, "category": item.category, "description": item.description, "amount": _money(item.amount_paise), "expense_type": item.expense_type, "recurring": item.recurring, "expense_date": item.expense_date.isoformat()} for item in items], "total": len(items)}
+    return {"items": [{"id": item.id, "category": item.category, "description": item.description, "amount": _money(item.amount_paise), "expense_type": item.expense_type, "recurring": item.recurring, "recurrence_frequency": item.recurrence_frequency, "recurrence_end_date": item.recurrence_end_date.isoformat() if item.recurrence_end_date else None, "next_due_date": item.next_due_date.isoformat() if item.next_due_date else None, "vendor": item.vendor, "notes": item.notes, "expense_date": item.expense_date.isoformat()} for item in items], "total": len(items)}
 
 
 @router.post("/expenses", status_code=201)
@@ -114,7 +133,9 @@ def create_expense(
     payload: ExpenseCreate, context: AuthContext = Depends(require_auth), db: Session = Depends(get_db),
     _: None = Depends(require_frontend_request),
 ) -> dict[str, Any]:
-    expense = Expense(id=str(uuid4()), business_id=context.business.id, category=payload.category.strip(), description=payload.description, amount_paise=round(payload.amount * 100), expense_type=payload.expense_type, recurring=payload.recurring, expense_date=payload.expense_date)
+    frequency = payload.recurrence_frequency or ("monthly" if payload.recurring else None)
+    from app.services.operational_intelligence import _next_date
+    expense = Expense(id=str(uuid4()), business_id=context.business.id, category=payload.category.strip(), description=payload.description, amount_paise=round(payload.amount * 100), expense_type=payload.expense_type, recurring=payload.recurring, recurrence_frequency=frequency, recurrence_end_date=payload.recurrence_end_date, next_due_date=_next_date(payload.expense_date, frequency) if frequency else None, vendor=payload.vendor, notes=payload.notes, expense_date=payload.expense_date)
     db.add(expense)
     db.commit()
     return {"id": expense.id, "created": True}
@@ -210,7 +231,15 @@ def get_conversation(conversation_id: str, context: AuthContext = Depends(requir
 @router.get("/approvals")
 def list_approvals(context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> dict[str, Any]:
     items = db.scalars(select(ApprovalRequest).where(ApprovalRequest.business_id == context.business.id).order_by(desc(ApprovalRequest.created_at))).all()
-    return {"items": [{"id": item.id, "action_type": item.action_type, "title": item.title, "parameters": item.parameters, "status": item.status, "created_at": item.created_at.isoformat()} for item in items]}
+    return {"items": [{"id": item.id, "action_type": item.action_type, "title": item.title, "parameters": item.parameters, "status": item.status, "created_at": item.created_at.isoformat(), "resolved_at": item.resolved_at.isoformat() if item.resolved_at else None, "executed_at": item.executed_at.isoformat() if item.executed_at else None, "execution_result": item.execution_result or {}} for item in items]}
+
+
+@router.post("/approvals", status_code=201)
+def create_approval(payload: ApprovalCreate, context: AuthContext = Depends(require_auth), db: Session = Depends(get_db), _: None = Depends(require_frontend_request)) -> dict[str, Any]:
+    item = ApprovalRequest(id=str(uuid4()), business_id=context.business.id, requested_by_user_id=context.user.id, action_type=payload.action_type, title=payload.title.strip(), parameters=payload.parameters, status="pending")
+    db.add(item)
+    db.commit()
+    return {"id": item.id, "status": item.status}
 
 
 @router.post("/approvals/{approval_id}/decision")
@@ -226,5 +255,56 @@ def decide_approval(
         raise HTTPException(status_code=409, detail="Approval request is already resolved")
     item.status = payload.decision
     item.resolved_at = datetime.now(timezone.utc)
+    result: dict[str, Any] = {"executed": False}
+    if payload.decision == "approved":
+        try:
+            result = execute_approved_action(db, item)
+            item.executed_at = datetime.now(timezone.utc)
+            item.execution_result = result
+        except ValueError as exc:
+            item.status = "failed"
+            item.execution_result = {"executed": False, "error": str(exc)}
     db.commit()
-    return {"id": item.id, "status": item.status, "executed": False, "note": "Approval is recorded; no financial action is executed automatically."}
+    return {"id": item.id, "status": item.status, **result}
+
+
+@router.get("/intelligence/revenue-leaks")
+def get_revenue_leaks(days: int = Query(30, ge=7, le=365), context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> dict[str, Any]:
+    return revenue_leaks(db, context.business.id, financial_mode(db, context.business.id), days)
+
+
+@router.get("/intelligence/settlements")
+def get_settlement_intelligence(days: int = Query(30, ge=7, le=365), context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> dict[str, Any]:
+    return settlement_intelligence(db, context.business.id, financial_mode(db, context.business.id), days)
+
+
+@router.get("/intelligence/anomalies")
+def get_anomalies(context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> dict[str, Any]:
+    result = isolation_forest_anomalies(db, context.business.id, financial_mode(db, context.business.id))
+    db.commit()
+    return result
+
+
+@router.get("/recommendations")
+def get_recommendations(context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> dict[str, Any]:
+    result = recommendations(db, context.business.id, financial_mode(db, context.business.id))
+    db.commit()
+    return result
+
+
+@router.get("/reports/financial-summary")
+def download_financial_report(days: int = Query(30, ge=7, le=365), context: AuthContext = Depends(require_auth), db: Session = Depends(get_db)) -> StreamingResponse:
+    summary = financial_summary(db, context.business.id, financial_mode(db, context.business.id), days)
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["FinPilot financial report", context.business.name])
+    writer.writerow(["Generated", summary["as_of"]])
+    writer.writerow(["Period days", days])
+    writer.writerow([])
+    writer.writerow(["Metric", "Amount (INR)"])
+    for key in ("gross_revenue_paise", "refunds_paise", "fees_paise", "net_revenue_paise", "settled_paise", "expenses_paise", "net_cashflow_paise"):
+        writer.writerow([key.replace("_paise", "").replace("_", " ").title(), _money(summary["current"][key])])
+    writer.writerow(["Financial health score", summary["health"]["score"]])
+    response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
+    response.headers["Content-Disposition"] = f'attachment; filename="finpilot-{days}d-financial-report.csv"'
+    return response

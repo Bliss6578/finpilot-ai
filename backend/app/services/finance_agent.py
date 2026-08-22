@@ -182,12 +182,14 @@ def _scenario(question: str) -> tuple[str | None, dict[str, float] | None]:
 
 
 def plan_financial_question(question: str) -> AgentPlan:
+    normalized = question.casefold()
+    if any(term in normalized for term in ("another client", "other client's", "other clients", "database password", "reveal every client", "reveal secret", "api secret")):
+        return AgentPlan("non_finance", "reject", _period_days(question), ("enforce_tenant_privacy",))
     if not is_financial_question(question):
         return AgentPlan("non_finance", "reject", _period_days(question), ("classify_financial_question",))
     scenario_type, parameters = _scenario(question)
     if scenario_type:
         return AgentPlan("finance", "decision_scenario", _period_days(question), ("get_financial_summary", "simulate_scenario", "evaluate_reserve_risk"), scenario_type, parameters)
-    normalized = question.casefold()
     for intent, terms, tools in INTENT_RULES:
         if any(term in normalized for term in terms):
             return AgentPlan("finance", intent, _period_days(question), ("get_financial_summary", *tools))

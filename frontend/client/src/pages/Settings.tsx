@@ -51,7 +51,7 @@ export default function Settings() {
   const [savedProfile, setSavedProfile] = useState<BusinessProfile | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
-  const [expenseDraft, setExpenseDraft] = useState({ category: "Operating", amount: "", expense_date: new Date().toISOString().slice(0, 10) });
+  const [expenseDraft, setExpenseDraft] = useState({ category: "Software", amount: "", expense_date: new Date().toISOString().slice(0, 10), expense_type: "operating", recurring: false, recurrence_frequency: "monthly" as "weekly" | "monthly" | "quarterly" | "yearly" });
   const [toggles, setToggles] = useState<Record<string, boolean>>(defaultNotifications);
   const signOut = async () => {
     try {
@@ -134,7 +134,7 @@ export default function Settings() {
   const addExpense = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await createExpense({ category: expenseDraft.category, description: null, amount: Number(expenseDraft.amount), expense_type: "operating", recurring: false, expense_date: expenseDraft.expense_date });
+      await createExpense({ category: expenseDraft.category, description: null, amount: Number(expenseDraft.amount), expense_type: expenseDraft.expense_type, recurring: expenseDraft.recurring, recurrence_frequency: expenseDraft.recurring ? expenseDraft.recurrence_frequency : null, expense_date: expenseDraft.expense_date });
       setExpenses((await fetchExpenses()).items);
       setExpenseDraft(current => ({ ...current, amount: "" }));
       toast.success("Expense recorded", { description: "Cash flow, runway and AI CFO context have been updated." });
@@ -296,12 +296,15 @@ export default function Settings() {
             <h2>Operating expenses</h2>
             <p>Record costs that Razorpay cannot observe. These entries feed cash flow, runway, scenarios and AI CFO answers.</p>
             <form className="setting-grid" onSubmit={addExpense}>
-              <label className="setting-field"><span>Category</span><input required value={expenseDraft.category} onChange={event => setExpenseDraft(current => ({ ...current, category: event.target.value }))} /></label>
+              <label className="setting-field"><span>Category</span><select value={expenseDraft.category} onChange={event => setExpenseDraft(current => ({ ...current, category: event.target.value }))}>{["Payroll", "Rent", "Software", "Marketing", "Logistics", "Taxes", "Professional services", "Utilities", "Inventory", "Travel", "Other"].map(item => <option key={item}>{item}</option>)}</select></label>
               <label className="setting-field"><span>Amount (INR)</span><input required min="0.01" step="0.01" type="number" value={expenseDraft.amount} onChange={event => setExpenseDraft(current => ({ ...current, amount: event.target.value }))} /></label>
               <label className="setting-field"><span>Expense date</span><input required type="date" value={expenseDraft.expense_date} onChange={event => setExpenseDraft(current => ({ ...current, expense_date: event.target.value }))} /></label>
-              <button className="button-primary" type="submit"><Plus />Add expense</button>
+              <label className="setting-field"><span>Expense class</span><select value={expenseDraft.expense_type} onChange={event => setExpenseDraft(current => ({ ...current, expense_type: event.target.value }))}>{["operating", "payroll", "tax", "vendor", "capital", "other"].map(item => <option key={item}>{item}</option>)}</select></label>
+              <label className="setting-check"><input type="checkbox" checked={expenseDraft.recurring} onChange={event => setExpenseDraft(current => ({ ...current, recurring: event.target.checked }))} /><span>Recurring schedule</span></label>
+              {expenseDraft.recurring && <label className="setting-field"><span>Frequency</span><select value={expenseDraft.recurrence_frequency} onChange={event => setExpenseDraft(current => ({ ...current, recurrence_frequency: event.target.value as typeof current.recurrence_frequency }))}>{["weekly", "monthly", "quarterly", "yearly"].map(item => <option key={item}>{item}</option>)}</select></label>}
+              <button className="button-primary" type="submit"><Plus />{expenseDraft.recurring ? "Add schedule" : "Add expense"}</button>
             </form>
-            <div className="toggle-list">{expenses.slice(0, 10).map(expense => <div className="toggle-row" key={expense.id}><span><strong>{expense.category}</strong> · {new Date(`${expense.expense_date}T00:00:00`).toLocaleDateString("en-IN")}</span><span>₹{expense.amount.toLocaleString("en-IN")} <button className="icon-button" aria-label={`Delete ${expense.category} expense`} onClick={() => void removeExpense(expense.id)}><Trash2 /></button></span></div>)}</div>
+            <div className="toggle-list">{expenses.slice(0, 10).map(expense => <div className="toggle-row" key={expense.id}><span><strong>{expense.category}</strong> · {new Date(`${expense.expense_date}T00:00:00`).toLocaleDateString("en-IN")}{expense.recurring ? ` · ${expense.recurrence_frequency}` : ""}</span><span>₹{expense.amount.toLocaleString("en-IN")} <button className="icon-button" aria-label={`Delete ${expense.category} expense`} onClick={() => void removeExpense(expense.id)}><Trash2 /></button></span></div>)}</div>
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Data source</SectionLabel>
