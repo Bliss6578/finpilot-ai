@@ -5,8 +5,10 @@ import { CashFlowChart } from "@/components/finance-charts";
 import { PageHeader, Panel, SectionLabel, StatusPill } from "@/components/finpilot-ui";
 import { currency } from "@/data/mockData";
 import { fetchCashflow, type CashflowResponse } from "@/services/api";
+import { useDateRange } from "@/contexts/DateRangeContext";
 
 export default function CashFlow() {
+  const { days } = useDateRange();
   const [data, setData] = useState<CashflowResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,9 +17,9 @@ export default function CashFlow() {
     setLoading(true);
     setError(null);
     try {
-      setData(await fetchCashflow(90, 90));
+      setData(await fetchCashflow(days, days));
     } catch {
-      setError("FinPilot could not load this workspace's cash flow. Confirm the backend deployment is current, then try again.");
+      setError("Paymentor could not load this workspace's cash flow. Confirm the backend deployment is current, then try again.");
     } finally {
       setLoading(false);
     }
@@ -25,7 +27,7 @@ export default function CashFlow() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [days]);
 
   if (loading && !data) {
     return <div className="auth-loading"><span className="auth-loading-mark">✦</span> Loading this workspace’s money timeline…</div>;
@@ -51,7 +53,7 @@ export default function CashFlow() {
     {error && <div className="panel api-error"><strong>Showing the last successful forecast</strong><span>{error}</span></div>}
     <section className="cashflow-metrics">
       <ForecastStat label="Saved cash position" value={currency(summary.cash_available)} note={`Calculated through ${data.as_of}`} primary />
-      <ForecastStat label="30-day forecast" value={currency(summary.forecast_closing_balance)} note="Expected closing balance" />
+      <ForecastStat label={`${days}-day forecast`} value={currency(summary.forecast_closing_balance)} note="Expected closing balance" />
       <ForecastStat label="Lowest balance" value={currency(summary.lowest_balance)} note={`Expected ${lowestDate}`} />
       <Panel className="forecast-stat"><SectionLabel>Risk level</SectionLabel><span className="stat-value"><StatusPill status={riskTone} /></span><p>Safe reserve {currency(summary.safe_reserve)}</p></Panel>
     </section>
@@ -82,7 +84,7 @@ export default function CashFlow() {
       <Panel className="risk-card">
         <div className="risk-title"><CircleAlert /><SectionLabel>Cash-flow evidence</SectionLabel></div>
         <h2>{summary.risk_level === "low" ? "Reserve stays protected" : `Lowest point ${lowestDate}`}</h2>
-        <p>{data.model.tenant_history_days < data.model.minimum_tenant_history_days ? "Confidence is limited because this client has sparse payment history. FinPilot will not invent missing business activity." : "The baseline is calculated from this workspace’s own payment history and financial settings."}</p>
+        <p>{data.model.tenant_history_days < data.model.minimum_tenant_history_days ? "Confidence is limited because this client has sparse payment history. Paymentor will not invent missing business activity." : "The baseline is calculated from this workspace’s own payment history and financial settings."}</p>
         <div className="risk-stat"><span>Projected low</span><strong>{currency(summary.lowest_balance)}</strong></div>
         <div className="risk-stat"><span>Data source</span><strong>Client Razorpay + saved policy</strong></div>
         <div className="risk-actions"><Link href="/ai-cfo" className="button-secondary"><Sparkles />Ask AI why</Link><Link href="/scenario-lab" className="button-primary"><FlaskConical />Run scenario</Link></div>

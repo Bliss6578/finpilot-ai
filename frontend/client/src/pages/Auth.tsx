@@ -39,7 +39,7 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
     } catch (reason) {
       if (axios.isAxiosError(reason)) {
         if (reason.code === "ECONNABORTED") {
-          setError("FinPilot's secure service is still waking up. Please try once more in a moment.");
+          setError("Paymentor's secure service is still waking up. Please try once more in a moment.");
         } else if (!reason.response) {
           setError("Unable to reach the secure service. Check your connection and try again.");
         } else {
@@ -58,19 +58,19 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
       <section className="auth-story">
         <Link href="/" className="auth-logo">
           <span><Sparkles /></span>
-          FinPilot
+          Paymentor
         </Link>
         <div className="auth-story-copy">
           <span>FINANCE INTELLIGENCE / FOR RAZORPAY BUSINESSES</span>
           <h1>Your numbers.<br />Your workspace.<br /><em>Your next move.</em></h1>
-          <p>Every FinPilot business is isolated, encrypted and connected only after its owner grants access.</p>
+          <p>Every Paymentor business is isolated, encrypted and connected only after its owner grants access.</p>
         </div>
         <div className="auth-trust"><ShieldCheck /> Secure business workspace · Private by default</div>
       </section>
       <section className="auth-form-side">
         <div className="auth-form-card">
           <span className="auth-step">{mode === "signup" ? "01 — CREATE WORKSPACE" : "WELCOME BACK"}</span>
-          <h2>{mode === "signup" ? "Start with your business" : "Sign in to FinPilot"}</h2>
+          <h2>{mode === "signup" ? "Start with your business" : "Sign in to Paymentor"}</h2>
           <p>{mode === "signup" ? "Create your account, then connect Razorpay securely." : "Continue to your financial command center."}</p>
           <form onSubmit={submit}>
             {mode === "signup" && (
@@ -99,12 +99,12 @@ export default function AuthPage({ mode }: { mode: "signin" | "signup" }) {
             {mode === "signin" && <Link href="/forgot-password" className="forgot-password-link">Forgot password?</Link>}
             {error && <div className="auth-error">{error}</div>}
             <button className="auth-submit" disabled={submitting}>
-              {submitting ? "Securing workspace…" : mode === "signup" ? "Create FinPilot account" : "Sign in"}
+              {submitting ? "Securing workspace…" : mode === "signup" ? "Create Paymentor account" : "Sign in"}
               {!submitting && <ArrowRight />}
             </button>
           </form>
           <div className="auth-switch">
-            {mode === "signup" ? "Already have an account?" : "New to FinPilot?"}{" "}
+            {mode === "signup" ? "Already have an account?" : "New to Paymentor?"}{" "}
             <Link href={mode === "signup" ? "/signin" : "/signup"}>{mode === "signup" ? "Sign in" : "Create an account"}</Link>
           </div>
         </div>

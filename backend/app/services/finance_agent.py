@@ -1,9 +1,9 @@
-"""FinPilot's native, evidence-first finance agent.
+"""Paymentor's native, evidence-first finance agent.
 
 The agent is deliberately small and auditable: it plans a question, executes
 tenant-scoped financial tools, and composes an answer from verified outputs.
 No third-party language model is required and no customer record leaves the
-FinPilot backend.
+Paymentor backend.
 """
 
 from __future__ import annotations
@@ -240,7 +240,7 @@ def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) 
     if plan.domain == "non_finance":
         return {
             "answer": "I can't answer this.",
-            "recommendation": "Ask FinPilot a question related to finance or your business finances.",
+            "recommendation": "Ask Paymentor a question related to finance or your business finances.",
             "classification": "fact", "metrics": [], "insights": [], "actions": [],
             "tools_used": list(plan.tools), "engine": "finpilot_native_finance_agent",
             "suggestions": ["What is my net revenue?", "How much runway do I have?", "What is affecting payment success?"],
@@ -258,7 +258,7 @@ def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) 
         concept = next((value for term, value in FINANCE_EXPLANATIONS.items() if term in normalized), None)
         if concept:
             verified["answer"] = concept
-            verified["recommendation"] = "Use the formula with complete, consistently dated business records before making a decision. FinPilot can personalize it as more financial sources are connected."
+            verified["recommendation"] = "Use the formula with complete, consistently dated business records before making a decision. Paymentor can personalize it as more financial sources are connected."
             verified["classification"] = "fact"
             verified["metrics"] = []
     learned_tools = ("finqa_symbolic_reasoning_router",) if reasoning_reference else ()

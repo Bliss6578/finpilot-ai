@@ -1,5 +1,5 @@
 /**
- * Flight Deck design reminder: mock data is shaped as future FinPilot API responses so the UI emphasizes forward-looking decisions, not just reporting.
+ * Flight Deck design reminder: mock data is shaped as future Paymentor API responses so the UI emphasizes forward-looking decisions, not just reporting.
  */
 export type TransactionStatus = "Captured" | "Failed" | "Refunded" | "Pending";
 

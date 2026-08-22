@@ -218,7 +218,7 @@ export default function Settings() {
     }
   };
   const disconnectApiKeys = async () => {
-    if (!window.confirm(`Disconnect Razorpay ${connection?.mode === "live" ? "Live" : "Test"} Mode from this FinPilot workspace?`)) return;
+    if (!window.confirm(`Disconnect Razorpay ${connection?.mode === "live" ? "Live" : "Test"} Mode from this Paymentor workspace?`)) return;
     setDisconnectingKeys(true);
     try {
       await disconnectRazorpayApiKeys();
@@ -310,7 +310,7 @@ export default function Settings() {
             <SectionLabel>Data source</SectionLabel>
             <h2><RazorpayOfficialLink>Razorpay connection</RazorpayOfficialLink></h2>
             <p>
-              FinPilot reads financial signals through your connected payment
+              Paymentor reads financial signals through your connected payment
               data.
             </p>
             <div className="connection-card">
@@ -363,7 +363,7 @@ export default function Settings() {
                 <div>
                   <SectionLabel>{connection?.connected ? "Update Razorpay credentials" : "Connect without Partner approval"}</SectionLabel>
                   <h3>Razorpay Test or Live API keys</h3>
-                  <p>Credentials are verified by Razorpay and the Key Secret is encrypted before storage. FinPilot never displays it again.</p>
+                  <p>Credentials are verified by Razorpay and the Key Secret is encrypted before storage. Paymentor never displays it again.</p>
                 </div>
                 <div className="api-key-fields">
                   <label className="setting-field">
@@ -395,7 +395,7 @@ export default function Settings() {
                       checked={apiKeys.confirmLive}
                       onChange={event => setApiKeys(current => ({ ...current, confirmLive: event.target.checked }))}
                     />
-                    <span>I own this Razorpay account and authorize FinPilot to read its real payment, refund and settlement data.</span>
+                    <span>I own this Razorpay account and authorize Paymentor to read its real payment, refund and settlement data.</span>
                   </label>
                 )}
                 <button className="button-primary" type="submit" disabled={connectingKeys || (isLiveKey && !apiKeys.confirmLive)}>
@@ -464,7 +464,7 @@ export default function Settings() {
                   <ShieldCheck /> {revokingSessions ? "Checking…" : "Sign out other devices"}
                 </button>
                 <button className="button-secondary" type="button" onClick={() => void signOut()}>
-                  <LogOut /> Sign out of FinPilot
+                  <LogOut /> Sign out of Paymentor
                 </button>
               </div>
             </form>
@@ -473,7 +473,7 @@ export default function Settings() {
             <SectionLabel>Financial preferences</SectionLabel>
             <h2>Cash policy</h2>
             <p>
-              FinPilot uses these thresholds when evaluating your future cash
+              Paymentor uses these thresholds when evaluating your future cash
               position.
             </p>
             <div className="setting-grid">
@@ -486,24 +486,24 @@ export default function Settings() {
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>AI control mode</SectionLabel>
-            <h2>How should FinPilot operate?</h2>
+            <h2>How should Paymentor operate?</h2>
             <p>
-              Choose the posture FinPilot takes when identifying financial
+              Choose the posture Paymentor takes when identifying financial
               opportunities and risks.
             </p>
             <div className="mode-grid">
               {[
                 [
                   "Observer",
-                  "FinPilot analyses data but does not suggest actions.",
+                  "Paymentor analyses data but does not suggest actions.",
                 ],
                 [
                   "Advisor",
-                  "FinPilot provides recommendations and financial guidance.",
+                  "Paymentor provides recommendations and financial guidance.",
                 ],
                 [
                   "Autopilot",
-                  "FinPilot prepares recommended actions for your approval.",
+                  "Paymentor prepares recommended actions for your approval.",
                 ],
               ].map(([name, description]) => (
                 <button

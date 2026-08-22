@@ -24,6 +24,7 @@ import {
   type DashboardResponse,
   type FinancialSummary,
 } from "@/services/api";
+import { useDateRange } from "@/contexts/DateRangeContext";
 
 const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 const mockDashboard: DashboardResponse = {
@@ -44,6 +45,7 @@ const mockDashboard: DashboardResponse = {
 };
 
 export default function Dashboard() {
+  const { days } = useDateRange();
   const [data, setData] = useState<DashboardResponse>(mockDashboard);
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState(false);
@@ -51,19 +53,19 @@ export default function Dashboard() {
   const [intelligence, setIntelligence] = useState<FinancialSummary | null>(null);
   useEffect(() => {
     if (demoMode) return;
-    fetchDashboard()
+    fetchDashboard(days)
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [days]);
   useEffect(() => {
     if (demoMode) return;
-    fetchCashflow(90, 90).then(setCashflow).catch(() => undefined);
-  }, []);
+    fetchCashflow(days, days).then(setCashflow).catch(() => undefined);
+  }, [days]);
   useEffect(() => {
     if (demoMode) return;
-    fetchFinancialSummary().then(setIntelligence).catch(() => undefined);
-  }, []);
+    fetchFinancialSummary(days).then(setIntelligence).catch(() => undefined);
+  }, [days]);
   const recent: (ApiTransaction | (typeof mockTransactions)[number])[] =
     demoMode ? mockTransactions.slice(0, 5) : data.recent_transactions;
   const financial = data.financial_summary ?? {
@@ -174,7 +176,7 @@ export default function Dashboard() {
             title={cashflow?.summary.risk_level === "low" ? "Cash reserve protected" : "Cash flow warning"}
             action={<Link href="/cash-flow">View forecast</Link>}
           >
-            {cashflow ? `This workspace’s forecast closes at ${currency(cashflow.summary.forecast_closing_balance)}.` : "FinPilot is loading the workspace forecast."}
+            {cashflow ? `This workspace’s forecast closes at ${currency(cashflow.summary.forecast_closing_balance)}.` : "Paymentor is loading the workspace forecast."}
           </InsightCard>
           <InsightCard
             tone="warning"

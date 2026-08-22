@@ -181,7 +181,7 @@ def cfo_briefing(
     if current["failure_rate"] < 5 and current["attempts"]:
         wins.append(f"Payment failure rate is contained at {current['failure_rate']:.1f}%.")
     return {
-        "title": "FinPilot weekly CFO brief",
+        "title": "Paymentor weekly CFO brief",
         "as_of": summary["as_of"],
         "health": summary["health"],
         "revenue": {"net": current["net_revenue_paise"] / 100, "growth_percent": growth},

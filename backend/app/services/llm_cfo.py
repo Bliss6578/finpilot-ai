@@ -17,7 +17,7 @@ EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNO
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?\d[\s-]?){8,15}(?!\d)")
 NUMBER_PATTERN = re.compile(r"(?<!\w)[₹$€£]?\s*-?\d[\d,]*(?:\.\d+)?%?")
 
-SYSTEM_INSTRUCTIONS = """You are FinPilot's AI CFO explanation layer.
+SYSTEM_INSTRUCTIONS = """You are Paymentor's AI CFO explanation layer.
 The FINPILOT_VERIFIED_RESULT object is calculated by tenant-scoped, deterministic
 financial tools and is the only source of financial facts. Never change, invent,
 extrapolate, or silently omit its numbers. Do not call payment proceeds accounting
@@ -123,7 +123,7 @@ def enhance_cfo_answer(
     if not settings.openai_configured and not looks_financial(question):
         result.update({
             "answer": "I can't answer this.",
-            "recommendation": "Ask FinPilot a question related to finance or your business finances.",
+            "recommendation": "Ask Paymentor a question related to finance or your business finances.",
             "classification": "fact",
             "metrics": [],
             "insights": [],
@@ -186,7 +186,7 @@ def enhance_cfo_answer(
         if generated["domain"] == "non_finance":
             result.update({
                 "answer": "I can't answer this.",
-                "recommendation": "Ask FinPilot a question related to finance or your business finances.",
+                "recommendation": "Ask Paymentor a question related to finance or your business finances.",
                 "classification": "fact",
                 "metrics": [],
                 "insights": [],

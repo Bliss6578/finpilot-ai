@@ -297,7 +297,7 @@ def download_financial_report(days: int = Query(30, ge=7, le=365), context: Auth
     summary = financial_summary(db, context.business.id, financial_mode(db, context.business.id), days)
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["FinPilot financial report", context.business.name])
+    writer.writerow(["Paymentor financial report", context.business.name])
     writer.writerow(["Generated", summary["as_of"]])
     writer.writerow(["Period days", days])
     writer.writerow([])

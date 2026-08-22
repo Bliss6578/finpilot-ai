@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import AppShell from "./components/layout/AppShell";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { DateRangeProvider } from "./contexts/DateRangeContext";
 const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/Auth"));
 const ForgotPasswordPage = lazy(() => import("./pages/AccountRecovery").then(module => ({ default: module.ForgotPasswordPage })));
@@ -132,8 +133,10 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <AuthProvider>
-            <Toaster richColors position="top-right" />
-            <Suspense fallback={<div className="auth-loading"><SparkLoader /> Loading workspace…</div>}><Router /></Suspense>
+            <DateRangeProvider>
+              <Toaster richColors position="top-right" />
+              <Suspense fallback={<div className="auth-loading"><SparkLoader /> Loading workspace…</div>}><Router /></Suspense>
+            </DateRangeProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>

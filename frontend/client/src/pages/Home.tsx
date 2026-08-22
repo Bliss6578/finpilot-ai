@@ -23,7 +23,7 @@ const stages = [
     number: "01",
     label: "Observe",
     title: "Every financial signal. One continuous view.",
-    copy: "Payments, refunds, fees and settlements flow into FinPilot automatically.",
+    copy: "Payments, refunds, fees and settlements flow into Paymentor automatically.",
     icon: ReceiptIndianRupee,
     stat: "₹2,000",
     meta: "Captured via Razorpay",
@@ -32,7 +32,7 @@ const stages = [
     number: "02",
     label: "Understand",
     title: "Noise becomes operating intelligence.",
-    copy: "FinPilot categorizes transactions and explains what changed across revenue, costs and cash.",
+    copy: "Paymentor categorizes transactions and explains what changed across revenue, costs and cash.",
     icon: BrainCircuit,
     stat: "100%",
     meta: "Payment success",
@@ -110,7 +110,7 @@ export default function Home() {
           <span>
             <Sparkles />
           </span>
-          FinPilot
+          Paymentor
         </Link>
         <nav>
           <a href="#story">How it works</a>
@@ -193,7 +193,7 @@ export default function Home() {
             transition={{ duration: 0.7, delay: 0.52, ease }}
           >
             <p>
-              FinPilot watches the financial pulse of your business, predicts
+              Paymentor watches the financial pulse of your business, predicts
               what comes next, and turns every signal into a decision.
             </p>
           </motion.div>
@@ -201,7 +201,7 @@ export default function Home() {
             <span>
               Explore
               <br />
-              FinPilot
+              Paymentor
             </span>
             <ArrowRight />
           </Link>
@@ -217,7 +217,7 @@ export default function Home() {
                 <i />
                 <i />
               </div>
-              <span>FINPILOT / COMMAND CENTER</span>
+              <span>PAYMENTOR / COMMAND CENTER</span>
               <b>LIVE</b>
             </div>
             <div className="product-shell">
@@ -282,7 +282,7 @@ export default function Home() {
           <h2>
             Traditional finance software tells you <em>what happened.</em>
             <br />
-            FinPilot tells you <strong>what happens next.</strong>
+            Paymentor tells you <strong>what happens next.</strong>
           </h2>
           <div className="statement-foot">
             <p>
@@ -333,7 +333,7 @@ export default function Home() {
           </h2>
           <p>Connect Razorpay. See the signal. Make the next move.</p>
           <Link href="/signup" className="cta-pill">
-            <span>Launch FinPilot</span>
+            <span>Launch Paymentor</span>
             <i>
               <ArrowRight />
             </i>
@@ -348,7 +348,7 @@ export default function Home() {
           <span>
             <Sparkles />
           </span>
-          FinPilot
+          Paymentor
         </Link>
         <p>
           Your AI Finance Controller
@@ -365,7 +365,7 @@ export default function Home() {
           <Link href="/delivery-policy">Digital delivery</Link>
           <Link href="/signin">Sign in</Link>
         </div>
-        <small>© 2026 FinPilot AI</small>
+        <small>© 2026 Paymentor AI</small>
       </footer>
     </div>
   );
@@ -376,7 +376,7 @@ function ProductStory() {
   return (
     <section className="product-story story-flowing" id="story">
       <div className="story-flow-head">
-        <span>01 — HOW FINPILOT WORKS</span>
+        <span>01 — HOW PAYMENTOR WORKS</span>
         <h2>
           From financial data
           <br />

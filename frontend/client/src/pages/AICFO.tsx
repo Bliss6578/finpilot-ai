@@ -33,7 +33,7 @@ export default function AICFO() {
       setContext(await fetchAICFOContext());
       setError(null);
     } catch {
-      setError("FinPilot could not read this workspace's financial context.");
+      setError("Paymentor could not read this workspace's financial context.");
     }
   };
 
@@ -56,7 +56,7 @@ export default function AICFO() {
       setMessages(current => [...current, { role: "assistant", response }]);
       await Promise.all([loadContext(), loadConversations()]);
     } catch {
-      setError("FinPilot could not complete that analysis. Refresh the financial context and try again.");
+      setError("Paymentor could not complete that analysis. Refresh the financial context and try again.");
     } finally {
       setThinking(false);
     }
@@ -81,7 +81,7 @@ export default function AICFO() {
       <div>
         <SectionLabel>Contextual finance intelligence</SectionLabel>
         <h1>Ask your financial evidence.</h1>
-        <p>Every answer is calculated inside the signed-in workspace from its Razorpay records and FinPilot forecast.</p>
+        <p>Every answer is calculated inside the signed-in workspace from its Razorpay records and Paymentor forecast.</p>
       </div>
       <button className="button-secondary" onClick={() => void loadContext()}><RefreshCw />Refresh context</button>
     </div>
@@ -91,12 +91,12 @@ export default function AICFO() {
           {messages.length === 0 && <div className="ai-welcome">
             <span className="mini-status"><i />{context ? `${context.payment_attempts} payment attempts available in this 30-day context` : "Connecting this workspace's finance context"}</span>
             <h2>Ask the question behind the numbers.</h2>
-            <p>FinPilot distinguishes measured evidence from modeled assumptions and says when a data source is missing.</p>
+            <p>Paymentor distinguishes measured evidence from modeled assumptions and says when a data source is missing.</p>
           </div>}
           {messages.map((message, index) => <ChatMessage key={`${message.role}-${index}`} message={message} onAction={setLocation} />)}
           {thinking && <div className="message">
             <div className="message-avatar"><Sparkles /></div>
-            <div className="message-copy"><div className="answer-heading"><i />FinPilot is analysing this workspace</div><span className="id-code">Comparing payments, refunds, settlements and forecast evidence…</span></div>
+            <div className="message-copy"><div className="answer-heading"><i />Paymentor is analysing this workspace</div><span className="id-code">Comparing payments, refunds, settlements and forecast evidence…</span></div>
           </div>}
           {!thinking && context?.razorpay_connected !== false && <div className="suggested-list follow-up-queries">
             {questions.map(question => <button className="suggested-question" key={question} onClick={() => void ask(question)}>{question}</button>)}
@@ -105,7 +105,7 @@ export default function AICFO() {
           <div ref={endRef} />
         </div>
         <form className="ai-input-area" onSubmit={submit}>
-          <div className="ai-input"><input value={draft} onChange={event => setDraft(event.target.value)} placeholder={context?.razorpay_connected === false ? "Connect Razorpay in Settings to continue" : "Ask FinPilot about your finances…"} maxLength={600} disabled={context?.razorpay_connected === false} /><button aria-label="Send question" disabled={thinking || !draft.trim() || context?.razorpay_connected === false}><Send /></button></div>
+          <div className="ai-input"><input value={draft} onChange={event => setDraft(event.target.value)} placeholder={context?.razorpay_connected === false ? "Connect Razorpay in Settings to continue" : "Ask Paymentor about your finances…"} maxLength={600} disabled={context?.razorpay_connected === false} /><button aria-label="Send question" disabled={thinking || !draft.trim() || context?.razorpay_connected === false}><Send /></button></div>
           <small>Answers use only this workspace. Payment proceeds are not described as accounting profit without expense data.</small>
         </form>
       </Panel>
@@ -114,11 +114,11 @@ export default function AICFO() {
         <Panel className="ai-rail-panel">
           <SectionLabel>Verified data sources</SectionLabel><h3>Analysis is grounded in this business.</h3>
           <div className="ai-data-source"><div className="source-icon"><Database /></div><div><strong><RazorpayOfficialLink compact>Razorpay · {context?.mode ?? "test"} mode</RazorpayOfficialLink></strong><span>Payments, settlements and refunds</span></div></div>
-          <div className="ai-data-source"><div className="source-icon"><Sparkles /></div><div><strong>FinPilot forecast</strong><span>{context?.focus.cashflow_source.replaceAll("_", " ") ?? "Loading model source"}</span></div></div>
+          <div className="ai-data-source"><div className="source-icon"><Sparkles /></div><div><strong>Paymentor forecast</strong><span>{context?.focus.cashflow_source.replaceAll("_", " ") ?? "Loading model source"}</span></div></div>
         </Panel>
         <Panel className="ai-rail-panel">
           <div className="ai-insight-image" aria-hidden="true"><Sparkles /></div><SectionLabel>Current focus</SectionLabel>
-          <h3>{context?.focus.title ?? "Reading business context"}</h3><p>{context?.focus.description ?? "FinPilot is calculating the current evidence-backed focus."}</p>
+          <h3>{context?.focus.title ?? "Reading business context"}</h3><p>{context?.focus.description ?? "Paymentor is calculating the current evidence-backed focus."}</p>
           <div className="ai-health-line"><span>Latest financial record</span><strong>{latestData}</strong></div>
         </Panel>
       </aside>
@@ -132,8 +132,8 @@ function ChatMessage({ message, onAction }: { message: Message; onAction: (path:
   return <div className="message">
     <div className="message-avatar"><Sparkles /></div>
     <div className="message-copy">
-      <div className="answer-heading"><i />FinPilot analysis · {response.evidence.mode} mode</div>
-      {response.llm && <div className="id-code">{response.llm.fallback ? "Verified FinPilot fallback" : `Grounded AI · ${response.llm.model}`}</div>}
+      <div className="answer-heading"><i />Paymentor analysis · {response.evidence.mode} mode</div>
+      {response.llm && <div className="id-code">{response.llm.fallback ? "Verified Paymentor fallback" : `Grounded AI · ${response.llm.model}`}</div>}
       {response.agent && <div className="agent-trace"><span>Native agent</span><strong>{response.agent.plan.intent.replaceAll("_", " ")}</strong><small>{Math.round(response.agent.confidence * 100)}% evidence confidence · private workspace execution{response.agent.reasoning_reference ? ` · FinQA operations: ${response.agent.reasoning_reference.operations.join(" → ")}` : ""}</small></div>}
       <p>{response.answer}</p>
       {!!response.tools_used?.length && <div className="id-code">{response.tools_used.map(tool => <span key={tool} style={{ marginRight: 14 }}><Check size={12} /> {tool.replaceAll("_", " ")}</span>)}</div>}

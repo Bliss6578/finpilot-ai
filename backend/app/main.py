@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.middleware import SecurityAndRateLimitMiddleware, metrics_snapshot
 
 settings = get_settings()
-app = FastAPI(title="FinPilot API", version="0.1.0")
+app = FastAPI(title="Paymentor API", version="0.1.0")
 app.add_middleware(
     SecurityAndRateLimitMiddleware,
     general_per_minute=settings.rate_limit_per_minute if settings.app_env == "production" else 100_000,
@@ -38,7 +38,7 @@ app.include_router(financial_intelligence_router)
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"service": "FinPilot API", "docs": "/docs", "health": "/api/health"}
+    return {"service": "Paymentor API", "docs": "/docs", "health": "/api/health"}
 
 
 @app.get("/api/readiness")

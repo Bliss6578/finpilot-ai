@@ -92,7 +92,7 @@ export function CashFlowChart({
         </span>
         <span>
           <i className="forecast" />
-          FinPilot forecast
+          Paymentor forecast
         </span>
         <span>
           <i className="reserve" />

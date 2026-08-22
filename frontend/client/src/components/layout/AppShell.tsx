@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CalendarDays,
@@ -21,6 +21,7 @@ import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchFinancialAlerts } from "@/services/api";
 import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
+import { useDateRange, type DateRangeDays } from "@/contexts/DateRangeContext";
 
 const navigation = [
   { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
@@ -57,10 +58,15 @@ const pageDescriptions: Record<string, string> = {
 };
 
 export default function AppShell({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const { days, setDays } = useDateRange();
   const { session, logout } = useAuth();
   const businessName = session?.business.name ?? "Business";
   const userName = session?.user.full_name ?? "User";
@@ -86,6 +92,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
     navigation.findIndex(item => item.href === activePath)
   );
   const nextPage = navigation[(activeIndex + 1) % navigation.length];
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const searchable = navigation.map(item => ({
+      ...item,
+      description: pageDescriptions[item.href] ?? "Open this Paymentor workspace page.",
+    }));
+    return query
+      ? searchable.filter(item => `${item.label} ${item.description}`.toLowerCase().includes(query))
+      : searchable;
+  }, [searchQuery]);
   useEffect(() => {
     if (!session) return;
     fetchFinancialAlerts(false).then(result => setUnreadAlerts(result.unread)).catch(() => setUnreadAlerts(0));
@@ -94,6 +110,36 @@ export default function AppShell({ children }: { children: ReactNode }) {
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [location, reducedMotion]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+        setDateOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+  useEffect(() => {
+    if (!searchOpen) return;
+    const frame = requestAnimationFrame(() => searchInput.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [searchOpen]);
+
+  const chooseRange = (nextDays: DateRangeDays) => {
+    setDays(nextDays);
+    setDateOpen(false);
+  };
+
+  const openSearchResult = (href: string) => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    navigate(href);
+  };
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
@@ -163,13 +209,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
         className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}
         aria-label="Primary navigation"
       >
-        <Link href="/" className="sidebar-brand" aria-label="FinPilot home">
+        <Link href="/" className="sidebar-brand" aria-label="Paymentor home">
           <div className="brand-mark" aria-hidden="true">
             <Sparkles />
           </div>
           <div>
             <strong>
-              FinPilot <em>AI</em>
+              Paymentor
             </strong>
             <span>Finance Intelligence</span>
           </div>
@@ -240,19 +286,36 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <Menu />
             </button>
             <div>
-              <span className="mobile-kicker">FINPILOT AI</span>
+              <span className="mobile-kicker">PAYMENTOR</span>
               <strong>
                 {String(activeIndex + 1).padStart(2, "0")} /{" "}
-                {pageTitles[activePath] ?? "FinPilot AI"}
+                {pageTitles[activePath] ?? "Paymentor"}
               </strong>
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="topbar-button date-button">
-              <CalendarDays />
-              Last 30 days
-            </button>
-            <button className="icon-button search-button" aria-label="Search">
+            <div className="topbar-popover-wrap">
+              <button
+                className="topbar-button date-button"
+                aria-haspopup="menu"
+                aria-expanded={dateOpen}
+                onClick={() => setDateOpen(value => !value)}
+              >
+                <CalendarDays />
+                Last {days} days
+              </button>
+              {dateOpen && (
+                <div className="date-range-menu" role="menu" aria-label="Financial date range">
+                  <span>Workspace period</span>
+                  {([7, 30, 90] as DateRangeDays[]).map(option => (
+                    <button key={option} role="menuitemradio" aria-checked={days === option} className={days === option ? "active" : ""} onClick={() => chooseRange(option)}>
+                      Last {option} days
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button className="icon-button search-button" aria-label="Search Paymentor" title="Search (⌘K)" onClick={() => setSearchOpen(true)}>
               <Search />
             </button>
             <Link
@@ -265,7 +328,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </Link>
             <Link href="/ai-cfo" className="ask-button">
               <Sparkles />
-              Ask FinPilot
+              Ask Paymentor
             </Link>
             <div className="top-avatar" aria-label={`${userName}'s profile`}>
               {userInitial}
@@ -281,14 +344,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
         >
           <div className="product-chapter" aria-hidden="true">
             <span>
-              {String(activeIndex + 1).padStart(2, "0")} — FINPILOT OPERATING
+              {String(activeIndex + 1).padStart(2, "0")} — PAYMENTOR OPERATING
               SYSTEM
             </span>
             <p>{pageDescriptions[activePath]}</p>
           </div>
           {children}
           <Link href={nextPage.href} className="route-continuation">
-            <span>Continue through FinPilot</span>
+            <span>Continue through Paymentor</span>
             <strong>{nextPage.label}</strong>
             <i>
               <ChevronRight />
@@ -296,6 +359,27 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </motion.main>
       </div>
+      {searchOpen && (
+        <div className="global-search-backdrop" role="presentation" onMouseDown={() => setSearchOpen(false)}>
+          <section className="global-search-dialog" role="dialog" aria-modal="true" aria-label="Search Paymentor" onMouseDown={event => event.stopPropagation()}>
+            <div className="global-search-input">
+              <Search />
+              <input ref={searchInput} value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search pages, tools and financial workflows…" />
+              <kbd>ESC</kbd>
+            </div>
+            <div className="global-search-results">
+              <small>{searchQuery ? "MATCHING WORKFLOWS" : "PAYMENTOR WORKSPACE"}</small>
+              {searchResults.length ? searchResults.map(({ href, label, icon: Icon, description }) => (
+                <button key={href} onClick={() => openSearchResult(href)}>
+                  <i><Icon /></i>
+                  <span><strong>{label}</strong><small>{description}</small></span>
+                  <ChevronRight />
+                </button>
+              )) : <p>No Paymentor page matches “{searchQuery}”.</p>}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

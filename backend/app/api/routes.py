@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 from typing import Any
@@ -201,22 +201,26 @@ async def sync_razorpay(
 def list_transactions(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    days: int = Query(30, ge=1, le=365),
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     mode = financial_mode(db, context.business.id)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    filters = (
+        Transaction.business_id == context.business.id,
+        Transaction.mode == mode,
+        Transaction.provider_created_at >= cutoff,
+    )
     items = db.scalars(
         select(Transaction)
-        .where(Transaction.business_id == context.business.id, Transaction.mode == mode)
+        .where(*filters)
         .order_by(desc(Transaction.provider_created_at))
         .offset(offset)
         .limit(limit)
     ).all()
     total = db.scalar(
-        select(func.count()).select_from(Transaction).where(
-            Transaction.business_id == context.business.id,
-            Transaction.mode == mode,
-        )
+        select(func.count()).select_from(Transaction).where(*filters)
     ) or 0
     return {"items": [transaction_json(item) for item in items], "total": total, "limit": limit, "offset": offset, "mode": mode}
 
@@ -322,11 +326,17 @@ def get_settlement(
 
 @router.get("/dashboard")
 def dashboard(
+    days: int = Query(30, ge=1, le=365),
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     mode = financial_mode(db, context.business.id)
-    tenant = (Transaction.business_id == context.business.id, Transaction.mode == mode)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    tenant = (
+        Transaction.business_id == context.business.id,
+        Transaction.mode == mode,
+        Transaction.provider_created_at >= cutoff,
+    )
     revenue = db.scalar(
         select(func.coalesce(func.sum(Transaction.amount_paise), 0)).where(*tenant, Transaction.status == "captured")
     ) or 0
@@ -340,7 +350,11 @@ def dashboard(
     payment_fees = db.scalar(
         select(func.coalesce(func.sum(Transaction.fee_paise), 0)).where(*tenant, Transaction.status == "captured")
     ) or 0
-    refund_tenant = (Refund.business_id == context.business.id, Refund.mode == mode)
+    refund_tenant = (
+        Refund.business_id == context.business.id,
+        Refund.mode == mode,
+        Refund.provider_created_at >= cutoff,
+    )
     refunded = db.scalar(
         select(func.count()).select_from(Refund).where(*refund_tenant, Refund.status == "processed")
     ) or 0
@@ -356,7 +370,11 @@ def dashboard(
             Refund.status == "pending",
         )
     ) or 0
-    settlement_tenant = (Settlement.business_id == context.business.id, Settlement.mode == mode)
+    settlement_tenant = (
+        Settlement.business_id == context.business.id,
+        Settlement.mode == mode,
+        Settlement.provider_created_at >= cutoff,
+    )
     settled_amount = db.scalar(
         select(func.coalesce(func.sum(Settlement.amount_paise), 0)).where(
             *settlement_tenant,
@@ -536,5 +554,5 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks, 
         if len(connections) == 1:
             connection = connections[0]
     if connection is None:
-        raise HTTPException(status_code=400, detail="Webhook account is not connected to FinPilot")
+        raise HTTPException(status_code=400, detail="Webhook account is not connected to Paymentor")
     return accept_webhook(db, background_tasks, connection, payload, x_razorpay_event_id)

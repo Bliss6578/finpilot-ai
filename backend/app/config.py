@@ -19,8 +19,14 @@ class Settings(BaseSettings):
     session_cookie_name: str = "finpilot_session"
     session_days: int = 30
     render_external_hostname: str = ""
+    email_provider: str = "resend"
     resend_api_key: str = ""
-    email_from: str = "FinPilot <onboarding@resend.dev>"
+    email_from: str = "Paymentor <onboarding@resend.dev>"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_app_password: str = ""
+    smtp_use_tls: bool = True
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6"
     openai_timeout_seconds: float = 20.0
@@ -72,7 +78,18 @@ class Settings(BaseSettings):
 
     @property
     def email_configured(self) -> bool:
-        return self.resend_api_key.startswith("re_") and bool(self.email_from)
+        provider = self.email_provider.strip().lower()
+        if provider == "smtp":
+            return bool(
+                self.email_from
+                and self.smtp_host
+                and self.smtp_port
+                and self.smtp_username
+                and self.smtp_app_password
+            )
+        if provider == "resend":
+            return self.resend_api_key.startswith("re_") and bool(self.email_from)
+        return False
 
     @property
     def openai_configured(self) -> bool:

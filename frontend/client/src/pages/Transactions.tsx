@@ -20,6 +20,7 @@ import {
   type TransactionStatus,
 } from "@/data/mockData";
 import { fetchTransactions, type ApiTransaction } from "@/services/api";
+import { useDateRange } from "@/contexts/DateRangeContext";
 
 type TransactionView = {
   id: string;
@@ -64,6 +65,7 @@ export function normalizeTransaction(item: ApiTransaction): TransactionView {
 }
 
 export default function Transactions() {
+  const { days } = useDateRange();
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<TransactionView[]>(
     demoMode ? mockTransactions : []
@@ -77,12 +79,12 @@ export default function Transactions() {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchTransactions();
+      const result = await fetchTransactions(days);
       setItems(result.items.map(normalizeTransaction));
       setRazorpayMode(result.mode);
     } catch {
       setError(
-        "FinPilot could not reach the finance API. Confirm that the backend is running on port 8000."
+        "Paymentor could not reach the finance API. Confirm that the backend is running on port 8000."
       );
     } finally {
       setLoading(false);
@@ -90,7 +92,7 @@ export default function Transactions() {
   };
   useEffect(() => {
     void load();
-  }, []);
+  }, [days]);
   const filtered = useMemo(
     () =>
       items.filter(item =>
@@ -117,7 +119,7 @@ export default function Transactions() {
         description={
           demoMode
             ? "Demo Mode is active. These records are sample business data."
-            : `${razorpayMode === "live" ? "Live Mode" : "Test Mode"} records synchronized securely through the FinPilot backend.`
+            : `${razorpayMode === "live" ? "Live Mode" : "Test Mode"} records synchronized securely through the Paymentor backend.`
         }
         action={
           <button

@@ -165,7 +165,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
 
     if not has_data:
         answer = "This workspace has no synchronized Razorpay activity in the last 60 days, so I cannot make a client-specific financial claim yet."
-        recommendation = "Run Razorpay Sync or receive a test webhook, then ask again. FinPilot will keep this workspace isolated from every other client's data."
+        recommendation = "Run Razorpay Sync or receive a test webhook, then ask again. Paymentor will keep this workspace isolated from every other client's data."
         metrics = [
             _metric("Payment attempts", "0", "Last 30 days"),
             _metric("Refunds", "0", "Last 30 days"),
@@ -179,7 +179,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             f"That is {refund_rate:.1f}% of captured payment value. {_change_text(change)}."
         )
         recommendation = (
-            "Review the linked payment and refund reason for the largest refunds. FinPilot cannot attribute refunds to products or campaigns until order-level commerce data is connected."
+            "Review the linked payment and refund reason for the largest refunds. Paymentor cannot attribute refunds to products or campaigns until order-level commerce data is connected."
             if current.refund_count
             else "No processed refund requires action in this period. Continue monitoring webhook and synchronization health."
         )
@@ -195,7 +195,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             f"{_inr(current.gross_paise)} captured, less {_inr(current.refunds_paise)} refunds and {_inr(current.fees_paise)} Razorpay fees. "
             f"{_change_text(change)}. This is not accounting profit because payroll, inventory, tax, advertising, and other expenses are not connected."
         )
-        recommendation = "Use net payment proceeds for collection monitoring. Connect expense and bank data before using FinPilot for profit or runway decisions."
+        recommendation = "Use net payment proceeds for collection monitoring. Connect expense and bank data before using Paymentor for profit or runway decisions."
         metrics = [
             _metric("Gross captured", _inr(current.gross_paise), f"{current.captured} payments"),
             _metric("Net proceeds", _inr(current.net_proceeds_paise), "After refunds and Razorpay fees"),
@@ -231,7 +231,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             f"The deterministic financial health score is {health['score']} out of 100 ({health['status'].replace('_', ' ')}). "
             f"Its components are runway {health['components']['runway']}, growth {health['components']['growth']}, cash flow {health['components']['cashflow']}, payments {health['components']['payments']}, and refunds {health['components']['refunds']}."
         )
-        recommendation = health["limitations"][0] if health["limitations"] else "Review the lowest-scoring component first; the score is calculated by FinPilot, not estimated by the language layer."
+        recommendation = health["limitations"][0] if health["limitations"] else "Review the lowest-scoring component first; the score is calculated by Paymentor, not estimated by the language layer."
         metrics = [
             _metric("Health score", f"{health['score']} / 100", health["status"].replace("_", " ").title()),
             _metric("Payment health", str(health["components"]["payments"]), "Deterministic component"),
@@ -300,7 +300,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             "period_days": PERIOD_DAYS,
             "latest_data_at": context["latest_data_at"],
             "cashflow_source": cashflow["data_source"],
-            "sources": ["Razorpay payments", "Razorpay refunds", "Razorpay settlements", "FinPilot cash-flow model"],
+            "sources": ["Razorpay payments", "Razorpay refunds", "Razorpay settlements", "Paymentor cash-flow model"],
         },
         "_llm_context": {
             "currency": intelligence["currency"],

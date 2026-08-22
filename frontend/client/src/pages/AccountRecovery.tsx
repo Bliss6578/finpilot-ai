@@ -17,7 +17,7 @@ function RecoveryShell({ children }: { children: ReactNode }) {
   return (
     <main className="recovery-page">
       <section className="recovery-card">
-        <Link href="/" className="auth-logo recovery-logo"><span><Sparkles /></span>FinPilot</Link>
+        <Link href="/" className="auth-logo recovery-logo"><span><Sparkles /></span>Paymentor</Link>
         {children}
       </section>
     </main>
@@ -42,7 +42,7 @@ export function ForgotPasswordPage() {
       setSubmitting(false);
     }
   };
-  return <RecoveryShell>{sent ? <RecoveryResult icon={<MailCheck />} title="Check your email" text="If this address belongs to an active FinPilot account, a secure reset link has been sent." /> : <><span className="auth-step">ACCOUNT RECOVERY</span><h1>Reset your password</h1><p>Enter your account email. The reset link expires after one hour.</p><form className="recovery-form" onSubmit={submit}><label><span>Work email</span><input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{error && <div className="auth-error">{error}</div>}<button className="auth-submit" disabled={submitting}>{submitting ? "Sending…" : "Send reset link"}<ArrowRight /></button></form></>}<Link href="/signin" className="recovery-back">Back to sign in</Link></RecoveryShell>;
+  return <RecoveryShell>{sent ? <RecoveryResult icon={<MailCheck />} title="Check your email" text="If this address belongs to an active Paymentor account, a secure reset link has been sent." /> : <><span className="auth-step">ACCOUNT RECOVERY</span><h1>Reset your password</h1><p>Enter your account email. The reset link expires after one hour.</p><form className="recovery-form" onSubmit={submit}><label><span>Work email</span><input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>{error && <div className="auth-error">{error}</div>}<button className="auth-submit" disabled={submitting}>{submitting ? "Sending…" : "Send reset link"}<ArrowRight /></button></form></>}<Link href="/signin" className="recovery-back">Back to sign in</Link></RecoveryShell>;
 }
 
 export function ResetPasswordPage() {
@@ -99,7 +99,7 @@ export function VerifyEmailPage() {
       setState("error");
     });
   }, [loading, session, navigate, refresh]);
-  return <RecoveryShell>{state === "working" ? <RecoveryResult icon={<MailCheck />} title="Verifying your email" text="Confirming this secure link…" /> : state === "success" ? <RecoveryResult icon={<CheckCircle2 />} title="Email verified" text="Your FinPilot account is now verified." /> : <RecoveryResult icon={<MailCheck />} title="Verification failed" text={error} />}<Link href={state === "success" ? "/dashboard" : "/settings"} className="recovery-back">Continue to FinPilot</Link></RecoveryShell>;
+  return <RecoveryShell>{state === "working" ? <RecoveryResult icon={<MailCheck />} title="Verifying your email" text="Confirming this secure link…" /> : state === "success" ? <RecoveryResult icon={<CheckCircle2 />} title="Email verified" text="Your Paymentor account is now verified." /> : <RecoveryResult icon={<MailCheck />} title="Verification failed" text={error} />}<Link href={state === "success" ? "/dashboard" : "/settings"} className="recovery-back">Continue to Paymentor</Link></RecoveryShell>;
 }
 
 function RecoveryResult({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {

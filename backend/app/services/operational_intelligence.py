@@ -185,7 +185,7 @@ def recommendations(db: Session, business_id: str, mode: str) -> dict[str, Any]:
 
 
 def execute_approved_action(db: Session, approval: ApprovalRequest) -> dict[str, Any]:
-    """Execute only allowlisted, reversible FinPilot-internal actions."""
+    """Execute only allowlisted, reversible Paymentor-internal actions."""
     if approval.action_type == "update_cash_policy":
         business = db.get(Business, approval.business_id)
         reserve = float(approval.parameters.get("minimum_reserve", 0))

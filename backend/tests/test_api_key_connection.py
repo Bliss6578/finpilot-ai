@@ -21,6 +21,89 @@ def signature(body: bytes, secret: str) -> str:
     return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
+def test_razorpay_connection_and_ledger_are_shared_across_device_sessions(monkeypatch) -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+
+    async def fake_validate(_key_id: str, _key_secret: str) -> None:
+        return None
+
+    monkeypatch.setattr(razorpay_keys, "validate_api_credentials", fake_validate)
+
+    def override_db():
+        with Session(engine) as session:
+            yield session
+
+    settings = Settings(
+        app_env="development",
+        database_url="sqlite+pysqlite:///:memory:",
+        token_encryption_key="test-only-high-entropy-encryption-key",
+    )
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_settings] = lambda: settings
+    headers = {"X-FinPilot-Request": "1"}
+    credentials = {
+        "email": "two-devices@example.com",
+        "password": "correct horse battery staple",
+    }
+    try:
+        with TestClient(app) as laptop, TestClient(app) as phone:
+            signup = laptop.post(
+                "/api/auth/signup",
+                headers=headers,
+                json={
+                    "full_name": "Two Device Owner",
+                    "business_name": "Shared Workspace",
+                    **credentials,
+                },
+            )
+            assert signup.status_code == 201
+            business_id = signup.json()["business"]["id"]
+            connected = laptop.post(
+                "/api/razorpay/api-keys/connect",
+                headers=headers,
+                json={
+                    "key_id": "rzp_test_sharedmerchant",
+                    "key_secret": "shared-test-secret",
+                },
+            )
+            assert connected.status_code == 200
+
+            now = datetime.now(timezone.utc)
+            with Session(engine) as db:
+                db.add(
+                    Transaction(
+                        business_id=business_id,
+                        mode="test",
+                        razorpay_payment_id="pay_shared_across_devices",
+                        amount_paise=250_000,
+                        currency="INR",
+                        status="captured",
+                        provider_created_at=now,
+                        raw_payload={},
+                    )
+                )
+                db.commit()
+
+            login = phone.post("/api/auth/login", headers=headers, json=credentials)
+            assert login.status_code == 200
+            assert login.json()["business"]["id"] == business_id
+            assert login.json()["razorpay_connected"] is True
+            assert phone.get("/api/razorpay/status").json()["connected"] is True
+            ledger = phone.get("/api/transactions").json()
+            assert ledger["total"] == 1
+            assert ledger["items"][0]["id"] == "pay_shared_across_devices"
+            assert ledger["items"][0]["amount"] == 2500
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_owner_can_manage_encrypted_test_keys_and_tenant_webhook(monkeypatch) -> None:
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",

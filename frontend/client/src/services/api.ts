@@ -7,7 +7,13 @@ const configuredApiUrl =
 
 // API methods already include the `/api` prefix. Accept either a backend
 // origin or a URL ending in `/api` so production configuration is forgiving.
-const apiBaseUrl = configuredApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+// In production, send API requests through Vercel's same-origin rewrite. This
+// keeps the secure session cookie first-party on Safari/iOS and other browsers
+// that block third-party cookies. Development continues to call FastAPI
+// directly so the local frontend and backend can run on separate ports.
+const apiBaseUrl = import.meta.env.PROD
+  ? ""
+  : configuredApiUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
@@ -226,13 +232,14 @@ export type SettlementIntelligence = { period_days: number; mode: string; status
 export type AnomalyResult = { model: string; trained: boolean; observations: number; minimum_days?: number; anomalies: { date: string; score: number; net_cashflow: number; failure_rate: number; refund_rate: number }[] };
 export type Recommendation = { id: string; priority: "critical" | "high" | "medium"; title: string; impact: number; basis: string; action_type: "update_cash_policy" | "create_follow_up"; parameters: Record<string, unknown> };
 export type Approval = { id: string; action_type: string; title: string; parameters: Record<string, unknown>; status: string; created_at: string; resolved_at: string | null; executed_at: string | null; execution_result: Record<string, unknown> };
-export async function fetchDashboard() {
-  return (await api.get<DashboardResponse>("/api/dashboard")).data;
+export async function fetchDashboard(days = 30) {
+  return (await api.get<DashboardResponse>("/api/dashboard", { params: { days } })).data;
 }
-export async function fetchTransactions() {
+export async function fetchTransactions(days = 30) {
   return (
     await api.get<{ items: ApiTransaction[]; total: number; mode: "test" | "live" }>(
-      "/api/transactions"
+      "/api/transactions",
+      { params: { days } }
     )
   ).data;
 }
