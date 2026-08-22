@@ -18,7 +18,13 @@ import { cashFlowData, currency } from "@/data/mockData";
 import type { CashflowPoint } from "@/services/api";
 import { useReducedMotion } from "framer-motion";
 
-const formatAxis = (value: number) => `₹${Math.round(value / 100000)}L`;
+const formatAxis = (value: number) => {
+  const absolute = Math.abs(value);
+  if (absolute >= 10000000) return `₹${(value / 10000000).toFixed(1).replace(".0", "")}Cr`;
+  if (absolute >= 100000) return `₹${(value / 100000).toFixed(1).replace(".0", "")}L`;
+  if (absolute >= 1000) return `₹${(value / 1000).toFixed(0)}K`;
+  return `₹${value.toFixed(0)}`;
+};
 
 export function CashFlowChart({
   variant = "dashboard",
@@ -45,6 +51,13 @@ export function CashFlowChart({
   const chartData = [...actual.slice(-rangeDays), ...forecast.slice(0, rangeDays)];
   const tickInterval = Math.max(Math.floor(chartData.length / 7) - 1, 0);
   const reserveLabel = `Safe reserve ${currency(safeReserve)}`;
+  const visibleValues = chartData.flatMap(point =>
+    [point.actual, point.forecast].filter(
+      (value): value is number => typeof value === "number" && Number.isFinite(value),
+    ),
+  );
+  const largestVisibleValue = Math.max(safeReserve, ...visibleValues, 1);
+  const chartMaximum = Math.ceil((largestVisibleValue * 1.18) / 100000) * 100000;
   return (
     <div
       className={
@@ -104,7 +117,8 @@ export function CashFlowChart({
             </defs>
             <CartesianGrid
               vertical={false}
-              stroke="#17345D"
+              stroke="#2A527F"
+              strokeOpacity={0.72}
               strokeDasharray="3 3"
             />
             <XAxis
@@ -112,19 +126,19 @@ export function CashFlowChart({
               tickLine={false}
               axisLine={false}
               interval={tickInterval}
-              tick={{ fill: "#8A91A5", fontSize: 11, fontFamily: "Manrope" }}
+              tick={{ fill: "#B8CAE0", fontSize: 11, fontFamily: "Manrope", fontWeight: 600 }}
             />
             <YAxis
               tickFormatter={formatAxis}
               tickLine={false}
               axisLine={false}
               width={48}
-              tick={{ fill: "#8A91A5", fontSize: 11, fontFamily: "Manrope" }}
-              domain={[0, 350000]}
+              tick={{ fill: "#B8CAE0", fontSize: 11, fontFamily: "Manrope", fontWeight: 600 }}
+              domain={[0, chartMaximum]}
             />
             <Tooltip
               content={<CashTooltip />}
-              cursor={{ stroke: "#C8CCDA", strokeDasharray: "3 3" }}
+              cursor={{ stroke: "#DDF3FF", strokeWidth: 1.5, strokeDasharray: "3 3" }}
             />
             <ReferenceLine
               y={safeReserve}
@@ -133,8 +147,9 @@ export function CashFlowChart({
               label={{
                 value: reserveLabel,
                 position: "insideTopLeft",
-                fill: "#B77900",
+                fill: "#FFC24B",
                 fontSize: 11,
+                fontWeight: 700,
               }}
             />
             <Area
@@ -144,6 +159,7 @@ export function CashFlowChart({
               strokeWidth={3}
               fill="url(#actualArea)"
               connectNulls={false}
+              activeDot={{ r: 5, fill: "#39BFFF", stroke: "#FFFFFF", strokeWidth: 2 }}
               isAnimationActive={!reducedMotion}
               animationDuration={900}
               animationEasing="ease-out"
@@ -155,6 +171,7 @@ export function CashFlowChart({
               strokeWidth={3}
               strokeDasharray="7 6"
               dot={false}
+              activeDot={{ r: 5, fill: "#39BFFF", stroke: "#FFFFFF", strokeWidth: 2 }}
               connectNulls={false}
               isAnimationActive={!reducedMotion}
               animationBegin={240}
@@ -195,7 +212,7 @@ function CashTooltip({
   if (!active || !payload?.length) return null;
   const value = payload.find(entry => entry.value != null)?.value;
   return (
-    <div className="chart-tooltip">
+    <div className="chart-tooltip" role="status" aria-live="polite">
       <span>{label}</span>
       <strong>{value != null ? currency(value) : "—"}</strong>
       <small>
@@ -224,7 +241,8 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
         >
           <CartesianGrid
             vertical={false}
-            stroke="#17345D"
+            stroke="#2A527F"
+            strokeOpacity={0.72}
             strokeDasharray="3 3"
           />
           <XAxis
@@ -232,15 +250,18 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
             interval={2}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#8A91A5", fontSize: 10 }}
+            tick={{ fill: "#B8CAE0", fontSize: 10, fontWeight: 600 }}
           />
           <YAxis
             tickFormatter={formatAxis}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#8A91A5", fontSize: 10 }}
+            tick={{ fill: "#B8CAE0", fontSize: 10, fontWeight: 600 }}
           />
-          <Tooltip content={<CashTooltip />} />
+          <Tooltip
+            content={<CashTooltip />}
+            cursor={{ stroke: "#DDF3FF", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+          />
           <ReferenceLine y={100000} stroke="#F59E0B" strokeDasharray="4 5" />
           <Line
             type="monotone"
@@ -249,6 +270,7 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
             stroke="#7695B8"
             strokeWidth={2.5}
             dot={false}
+            activeDot={{ r: 5, fill: "#7695B8", stroke: "#FFFFFF", strokeWidth: 2 }}
             isAnimationActive={!reducedMotion}
             animationDuration={700}
           />
@@ -259,6 +281,7 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
             stroke="#39BFFF"
             strokeWidth={3}
             dot={false}
+            activeDot={{ r: 5, fill: "#39BFFF", stroke: "#FFFFFF", strokeWidth: 2 }}
             isAnimationActive={!reducedMotion}
             animationDuration={850}
           />
