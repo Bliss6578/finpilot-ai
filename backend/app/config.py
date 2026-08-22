@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str = "sqlite:///./finpilot.db"
     frontend_url: str = "http://localhost:3000"
+    frontend_origin_regex: str = r"^https://finpilot-[a-z0-9-]+-ishita22\.vercel\.app$"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""

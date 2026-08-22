@@ -18,7 +18,14 @@ app.add_middleware(
     general_per_minute=settings.rate_limit_per_minute if settings.app_env == "production" else 100_000,
     auth_per_minute=settings.auth_rate_limit_per_minute if settings.app_env == "production" else 100_000,
 )
-app.add_middleware(CORSMiddleware, allow_origins=[settings.frontend_origin], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_origin],
+    allow_origin_regex=settings.frontend_origin_regex or None,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(razorpay_oauth_router)

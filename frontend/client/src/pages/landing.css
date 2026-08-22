@@ -1745,3 +1745,160 @@
   background: rgba(4, 17, 33, 0.94);
   box-shadow: 0 24px 55px rgba(0, 0, 0, 0.48);
 }
+
+/* Production palette: one continuous intelligence-network experience. */
+.landing {
+  --lime: #52c8ff;
+  --paper: #030b1b;
+  --black: #020713;
+  background: #030b1b;
+  color: #edf8ff;
+}
+
+.landing .landing-hero {
+  background: linear-gradient(145deg, #020713, #05265c 58%, #020817);
+}
+
+.landing .landing-hero::after {
+  opacity: 0.55;
+  filter: grayscale(0.15) saturate(1.65) hue-rotate(168deg) contrast(1.18) brightness(0.62);
+  mix-blend-mode: screen;
+}
+
+.landing .landing-hero::before {
+  background:
+    linear-gradient(180deg, rgba(2, 7, 19, 0.15), rgba(2, 8, 22, 0.76)),
+    radial-gradient(circle at 73% 48%, rgba(47, 171, 255, 0.24), transparent 32%);
+}
+
+.landing .hero-product {
+  border-color: rgba(103, 194, 255, 0.32);
+  background: rgba(3, 15, 34, 0.86);
+  box-shadow: 0 55px 110px rgba(0, 3, 12, 0.58), inset 0 1px rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px);
+}
+
+.landing .product-top,
+.landing .product-shell > aside {
+  background: #020a18;
+  color: #7390ad;
+}
+
+.landing .product-top b {
+  color: #7dd8ff;
+}
+
+.landing .product-shell,
+.landing .product-main {
+  background: rgba(5, 20, 43, 0.96);
+  color: #edf7ff;
+}
+
+.landing .product-shell > aside i.active,
+.landing .mini-brand {
+  background: linear-gradient(145deg, #46cbff, #236eff);
+  color: #fff;
+}
+
+.landing .mini-heading small,
+.landing .mini-metrics small {
+  color: #7590ae;
+}
+
+.landing .mini-heading > span {
+  background: rgba(37, 194, 133, 0.12);
+  color: #64dfa9;
+}
+
+.landing .mini-metrics > div,
+.landing .mini-chart {
+  border-color: rgba(101, 176, 255, 0.17);
+  background: rgba(8, 29, 59, 0.74);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.landing .mini-metrics em {
+  color: #58caff;
+}
+
+.landing .landing-ticker,
+.landing .product-story,
+.landing .capabilities {
+  background: #030b1b;
+}
+
+.landing .story-flow-head {
+  border-color: rgba(91, 177, 255, 0.2);
+}
+
+.landing .story-flow-head h2,
+.landing .capabilities > h2,
+.landing .capability-row h3 {
+  color: #f1f8ff;
+}
+
+.landing .story-flow-head p,
+.landing .section-index p,
+.landing .capability-row p {
+  color: #849dba;
+}
+
+.landing .statement {
+  border: 1px solid rgba(94, 183, 255, 0.2);
+  background:
+    repeating-radial-gradient(ellipse at 84% 24%, transparent 0 48px, rgba(70, 177, 255, 0.055) 49px 50px),
+    radial-gradient(circle at 82% 18%, rgba(28, 127, 255, 0.23), transparent 28%),
+    linear-gradient(145deg, #071a38, #020817);
+  color: #f2f8ff;
+  box-shadow: 0 38px 90px rgba(0, 4, 16, 0.36);
+}
+
+.landing .statement h2 em {
+  color: #6d87a5;
+}
+
+.landing .statement h2 strong,
+.landing .statement-foot a {
+  color: #56cbff;
+}
+
+.landing .statement-foot {
+  border-color: rgba(96, 180, 255, 0.2);
+}
+
+.landing .statement-foot p {
+  color: #849dba;
+}
+
+.landing .capability-list,
+.landing .capability-row {
+  border-color: rgba(92, 168, 247, 0.19);
+}
+
+.landing .capability-row {
+  background: linear-gradient(90deg, rgba(8, 28, 55, 0.52), rgba(3, 11, 27, 0));
+}
+
+.landing .capability-row:hover {
+  background: linear-gradient(90deg, rgba(13, 48, 91, 0.8), rgba(5, 20, 43, 0.42));
+}
+
+.landing .capability-row > i {
+  background: linear-gradient(145deg, #46cbff, #236eff);
+  color: #fff;
+}
+
+@media (max-width: 800px) {
+  .landing .landing-hero {
+    min-height: 1080px;
+  }
+
+  .landing .hero-product {
+    border-color: rgba(103, 194, 255, 0.3);
+    background: rgba(3, 15, 34, 0.92);
+  }
+
+  .landing .statement {
+    min-height: auto;
+  }
+}
