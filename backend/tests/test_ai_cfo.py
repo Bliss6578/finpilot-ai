@@ -123,7 +123,9 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
             assert "not accounting profit" in body["answer"]
             assert all(metric["label"].lower() != "advertising" for metric in body["metrics"])
             assert "advertising" in body["answer"].lower() and "not connected" in body["answer"].lower()
-            assert body["evidence"]["business_id"] == business_id
+            assert body["evidence"]["tenant_scope"] == "authenticated_workspace"
+            assert body["conversation_id"]
+            assert body["engine"] == "deterministic_financial_tools"
             assert len(body["suggestions"]) >= 3
 
             refund = owner.post(
@@ -141,6 +143,10 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
             ).json()
             assert "no synchronized Razorpay activity" in isolated["answer"]
             assert "₹2,434" not in isolated["answer"]
+            other_conversation = other_owner.get(
+                f"/api/v1/cfo/conversations/{body['conversation_id']}"
+            )
+            assert other_conversation.status_code == 404
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)

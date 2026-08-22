@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { Check, Copy, KeyRound, Link2, LogOut, MailCheck, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
+import { Check, Copy, KeyRound, Link2, LogOut, MailCheck, Plus, RefreshCw, ShieldCheck, Trash2, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
 import {
@@ -11,6 +11,13 @@ import {
   requestEmailVerification,
   rotateRazorpayWebhookSecret,
   syncRazorpay,
+  fetchBusinessProfile,
+  updateBusinessProfile,
+  createExpense,
+  deleteExpense,
+  fetchExpenses,
+  type BusinessProfile,
+  type ExpenseRecord,
   type RazorpayWebhookCredentials,
   type RazorpayStatus,
 } from "@/services/api";
@@ -38,6 +45,10 @@ export default function Settings() {
   const [disconnectingKeys, setDisconnectingKeys] = useState(false);
   const [rotatingWebhook, setRotatingWebhook] = useState(false);
   const [webhookCredentials, setWebhookCredentials] = useState<RazorpayWebhookCredentials | null>(null);
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [expenseDraft, setExpenseDraft] = useState({ category: "Operating", amount: "", expense_date: new Date().toISOString().slice(0, 10) });
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     "Cash flow risks": true,
     "Payment failures": true,
@@ -117,7 +128,19 @@ export default function Settings() {
   };
   useEffect(() => {
     void refreshStatus();
+    fetchBusinessProfile().then(setProfile).catch(() => undefined);
+    fetchExpenses().then(result => setExpenses(result.items)).catch(() => undefined);
   }, []);
+  const addExpense = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      await createExpense({ category: expenseDraft.category, description: null, amount: Number(expenseDraft.amount), expense_type: "operating", recurring: false, expense_date: expenseDraft.expense_date });
+      setExpenses((await fetchExpenses()).items);
+      setExpenseDraft(current => ({ ...current, amount: "" }));
+      toast.success("Expense recorded", { description: "Cash flow, runway and AI CFO context have been updated." });
+    } catch (reason: any) { toast.error("Unable to record expense", { description: reason?.response?.data?.detail ?? "Check the amount and date." }); }
+  };
+  const removeExpense = async (id: string) => { await deleteExpense(id); setExpenses(current => current.filter(item => item.id !== id)); toast.success("Expense removed"); };
   const runSync = async () => {
     setSyncing(true);
     try {
@@ -227,10 +250,18 @@ export default function Settings() {
       });
     }
   };
-  const save = () =>
-    toast.success("Preferences saved", {
-      description: "FinPilot will use these settings in future analyses.",
-    });
+  const save = async () => {
+    if (!profile) return;
+    setSavingProfile(true);
+    try {
+      setProfile(await updateBusinessProfile(profile));
+      toast.success("Financial policy saved", { description: "Health, runway, alerts and scenarios now use these values." });
+    } catch (reason: any) {
+      toast.error("Unable to save financial policy", { description: reason?.response?.data?.detail ?? "Please check the entered values." });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
   const lastSync = connection?.last_sync
     ? new Date(connection.last_sync).toLocaleString("en-IN", {
         dateStyle: "medium",
@@ -253,10 +284,22 @@ export default function Settings() {
             <p>This is used to make your finance insights more relevant.</p>
             <div className="setting-grid">
               <Setting label="Business name" value={session?.business.name ?? "Your business"} />
-              <Setting label="Industry" value="E-commerce / Clothing" />
-              <Setting label="Website" value="aurafashion.in" />
+              <Setting label="Industry" value={profile?.industry ?? ""} onChange={value => setProfile(current => current ? { ...current, industry: value } : current)} />
+              <Setting label="Website" value={profile?.website ?? ""} onChange={value => setProfile(current => current ? { ...current, website: value } : current)} />
               <Setting label="Currency" value="INR — Indian Rupee" select />
             </div>
+          </Panel>
+          <Panel className="settings-panel">
+            <SectionLabel>Expense ledger</SectionLabel>
+            <h2>Operating expenses</h2>
+            <p>Record costs that Razorpay cannot observe. These entries feed cash flow, runway, scenarios and AI CFO answers.</p>
+            <form className="setting-grid" onSubmit={addExpense}>
+              <label className="setting-field"><span>Category</span><input required value={expenseDraft.category} onChange={event => setExpenseDraft(current => ({ ...current, category: event.target.value }))} /></label>
+              <label className="setting-field"><span>Amount (INR)</span><input required min="0.01" step="0.01" type="number" value={expenseDraft.amount} onChange={event => setExpenseDraft(current => ({ ...current, amount: event.target.value }))} /></label>
+              <label className="setting-field"><span>Expense date</span><input required type="date" value={expenseDraft.expense_date} onChange={event => setExpenseDraft(current => ({ ...current, expense_date: event.target.value }))} /></label>
+              <button className="button-primary" type="submit"><Plus />Add expense</button>
+            </form>
+            <div className="toggle-list">{expenses.slice(0, 10).map(expense => <div className="toggle-row" key={expense.id}><span><strong>{expense.category}</strong> · {new Date(`${expense.expense_date}T00:00:00`).toLocaleDateString("en-IN")}</span><span>₹{expense.amount.toLocaleString("en-IN")} <button className="icon-button" aria-label={`Delete ${expense.category} expense`} onClick={() => void removeExpense(expense.id)}><Trash2 /></button></span></div>)}</div>
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Data source</SectionLabel>
@@ -429,10 +472,11 @@ export default function Settings() {
               position.
             </p>
             <div className="setting-grid">
-              <Setting label="Minimum cash reserve" value="₹1,00,000" />
-              <Setting label="Forecast period" value="30 days" select />
-              <Setting label="Monthly fixed expenses" value="₹2,10,000" />
-              <Setting label="Risk sensitivity" value="Balanced" select />
+              <Setting label="Current cash (INR)" value={String(profile?.current_cash ?? "")} onChange={value => setProfile(current => current ? { ...current, current_cash: Number(value) || 0 } : current)} />
+              <Setting label="Minimum cash reserve (INR)" value={String(profile?.minimum_reserve ?? "")} onChange={value => setProfile(current => current ? { ...current, minimum_reserve: Number(value) || 0 } : current)} />
+              <Setting label="Monthly fixed expenses (INR)" value={String(profile?.monthly_fixed_expenses ?? "")} onChange={value => setProfile(current => current ? { ...current, monthly_fixed_expenses: Number(value) || 0 } : current)} />
+              <Setting label="Target runway (months)" value={String(profile?.target_runway_months ?? 12)} onChange={value => setProfile(current => current ? { ...current, target_runway_months: Number(value) || 12 } : current)} />
+              <label className="setting-field"><span>Risk sensitivity</span><select value={profile?.risk_tolerance ?? "moderate"} onChange={event => setProfile(current => current ? { ...current, risk_tolerance: event.target.value as BusinessProfile["risk_tolerance"] } : current)}><option value="conservative">Conservative</option><option value="moderate">Moderate</option><option value="aggressive">Aggressive</option></select></label>
             </div>
           </Panel>
           <Panel className="settings-panel">
@@ -493,8 +537,8 @@ export default function Settings() {
           </Panel>
           <div className="save-bar">
             <button className="button-secondary">Discard</button>
-            <button className="button-primary" onClick={save}>
-              Save changes
+            <button className="button-primary" onClick={() => void save()} disabled={savingProfile || !profile}>
+              {savingProfile ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>
@@ -502,9 +546,9 @@ export default function Settings() {
           <Panel>
             <SectionLabel>Finance snapshot</SectionLabel>
             <h3>Current configuration</h3>
-            <Preference label="Reserve" value="₹1,00,000" />
-            <Preference label="Forecast horizon" value="30 days" />
-            <Preference label="Risk sensitivity" value="Balanced" />
+            <Preference label="Reserve" value={`₹${(profile?.minimum_reserve ?? 0).toLocaleString("en-IN")}`} />
+            <Preference label="Target runway" value={`${profile?.target_runway_months ?? 12} months`} />
+            <Preference label="Risk sensitivity" value={profile?.risk_tolerance ?? "moderate"} />
             <Preference label="AI mode" value={mode} />
           </Panel>
           <Panel>
@@ -524,10 +568,12 @@ function Setting({
   label,
   value,
   select,
+  onChange,
 }: {
   label: string;
   value: string;
   select?: boolean;
+  onChange?: (value: string) => void;
 }) {
   return (
     <label className="setting-field">
@@ -539,7 +585,7 @@ function Setting({
           <option>90 days</option>
         </select>
       ) : (
-        <input defaultValue={value} />
+        <input value={value} onChange={event => onChange?.(event.target.value)} readOnly={!onChange} />
       )}
     </label>
   );

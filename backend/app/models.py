@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -136,6 +136,15 @@ class Business(Base):
     name: Mapped[str] = mapped_column(String(160))
     slug: Mapped[str] = mapped_column(String(180), unique=True, index=True)
     currency: Mapped[str] = mapped_column(String(8), default="INR")
+    industry: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    current_cash_paise: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    monthly_budget_paise: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    monthly_fixed_expenses_paise: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    minimum_reserve_paise: Mapped[int] = mapped_column(BigInteger, default=10_000_000)
+    target_runway_months: Mapped[float] = mapped_column(Float, default=12.0)
+    target_growth_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    risk_tolerance: Mapped[str] = mapped_column(String(24), default="moderate")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -203,3 +212,100 @@ class OAuthState(Base):
     business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    category: Mapped[str] = mapped_column(String(80), index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    amount_paise: Mapped[int] = mapped_column(BigInteger)
+    expense_type: Mapped[str] = mapped_column(String(24), default="operating")
+    recurring: Mapped[bool] = mapped_column(Boolean, default=False)
+    expense_date: Mapped[date] = mapped_column(Date, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DailyFinancialMetric(Base):
+    __tablename__ = "daily_financial_metrics"
+    __table_args__ = (UniqueConstraint("business_id", "mode", "metric_date", name="uq_daily_metric_business_mode_date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
+    metric_date: Mapped[date] = mapped_column(Date, index=True)
+    gross_revenue_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    refunds_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    fees_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    expenses_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    net_cashflow_paise: Mapped[int] = mapped_column(BigInteger, default=0)
+    successful_payments: Mapped[int] = mapped_column(Integer, default=0)
+    failed_payments: Mapped[int] = mapped_column(Integer, default=0)
+    refund_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    failure_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FinancialAlert(Base):
+    __tablename__ = "financial_alerts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
+    alert_type: Mapped[str] = mapped_column(String(80), index=True)
+    severity: Mapped[str] = mapped_column(String(24), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text)
+    metric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    baseline_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(String(24), default="unread", index=True)
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class CFOConversation(Base):
+    __tablename__ = "cfo_conversations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class CFOMessage(Base):
+    __tablename__ = "cfo_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    conversation_id: Mapped[str] = mapped_column(ForeignKey("cfo_conversations.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(24))
+    content: Mapped[str] = mapped_column(Text)
+    structured_content: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class ForecastSnapshot(Base):
+    __tablename__ = "forecast_snapshots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="test", index=True)
+    horizon_days: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class ApprovalRequest(Base):
+    __tablename__ = "approval_requests"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_id: Mapped[str] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
+    requested_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    action_type: Mapped[str] = mapped_column(String(80), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

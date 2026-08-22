@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import logging
 from typing import Any
 
 import httpx
@@ -22,8 +23,10 @@ from app.services.razorpay import (
     upsert_settlement,
     verify_webhook_signature,
 )
+from app.services.financial_engine import rebuild_daily_metrics, refresh_anomaly_alerts
 
 router = APIRouter(prefix="/api")
+logger = logging.getLogger("finpilot.ingestion")
 
 
 def financial_mode(db: Session, business_id: str) -> str:
@@ -145,6 +148,7 @@ async def sync_razorpay(
     run = SyncRun(business_id=context.business.id, mode=connection.mode, status="running")
     db.add(run)
     db.commit()
+    logger.info("razorpay_sync_started", extra={"business_id": context.business.id, "mode": connection.mode})
     try:
         connection = await refresh_oauth_connection(db, settings, connection)
         service = RazorpayService(settings, connection)
@@ -166,11 +170,14 @@ async def sync_razorpay(
             upsert_refund(db, refund, context.business.id, connection.mode)
         for settlement in settlements:
             upsert_settlement(db, settlement, context.business.id, connection.mode)
+        rebuild_daily_metrics(db, context.business.id, connection.mode)
+        refresh_anomaly_alerts(db, context.business.id, connection.mode)
         records_processed = len(payments) + len(refunds) + len(settlements)
         run.status = "completed"
         run.records_processed = records_processed
         run.finished_at = datetime.now(timezone.utc)
         db.commit()
+        logger.info("razorpay_sync_completed", extra={"business_id": context.business.id, "mode": connection.mode, "records_processed": records_processed})
         return {
             "success": True,
             "records_processed": records_processed,
@@ -422,9 +429,12 @@ def process_webhook(event_id: int) -> None:
                 upsert_refund(db, refund, event.business_id, event.mode)
             if settlement:
                 upsert_settlement(db, settlement, event.business_id, event.mode)
+            rebuild_daily_metrics(db, event.business_id, event.mode)
+            created_alerts = refresh_anomaly_alerts(db, event.business_id, event.mode)
             event.status = "processed"
             event.processed_at = datetime.now(timezone.utc)
             db.commit()
+            logger.info("webhook_processed", extra={"business_id": event.business_id, "event_type": event.event_type, "alerts_created": len(created_alerts)})
         except Exception as exc:
             event.status = "failed"
             event.error_message = str(exc)[:500]

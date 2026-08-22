@@ -48,9 +48,32 @@ Source: https://archive.ics.uci.edu/dataset/502/online+retail+ii
 
 ## Grounded AI CFO
 
-`POST /api/ai-cfo/ask` calculates answers from the authenticated business and its active Test/Live mode. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, and the FinPilot cash-flow model. Responses include their evidence sources and contextual follow-up questions.
+`POST /api/v1/cfo/chat` calculates answers from the authenticated business and its active Test/Live mode. Conversations and structured answers persist per workspace. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, recorded expenses, cash policy, and the FinPilot cash-flow model. Responses identify the deterministic tools used, evidence sources, classifications, recommended actions, and contextual follow-up questions.
 
 The CFO deliberately calls Razorpay-derived revenue “net payment proceeds,” not accounting profit. It will not invent causes involving advertising, payroll, inventory, tax, or products until those data sources are connected. Tenant-isolation tests verify that one business cannot appear in another business's answer.
+
+## Financial intelligence platform
+
+Run `alembic upgrade head` after pulling. The financial-intelligence migration adds business memory, expense records, daily metrics, anomaly alerts, CFO conversations, forecast snapshots, and approval requests.
+
+Important authenticated endpoints:
+
+- `GET /api/v1/dashboard/summary` — deterministic revenue, cash flow, burn, runway, completeness, forecast, and health score
+- `GET|PUT /api/v1/settings/business-profile` — current cash, reserve, fixed expenses, risk tolerance, and planning targets
+- `GET|POST|DELETE /api/v1/expenses` — tenant-scoped operating expense ledger
+- `POST /api/v1/scenarios/simulate` — deterministic what-if results without LLM arithmetic
+- `GET /api/v1/alerts?refresh=true` — rolling payment/refund anomaly detection
+- `POST /api/v1/cfo/chat` and `GET /api/v1/cfo/briefing` — persistent grounded CFO analysis
+- `GET /api/v1/approvals` — approval records; no financial action executes automatically
+
+Seed a realistic six-month demo workspace, including expenses, settlements and one payment anomaly:
+
+```bash
+cd backend
+python scripts/seed_demo_company.py --business-id YOUR_BUSINESS_ID --payments 5000
+```
+
+All tenant identifiers come from the authenticated server-side session. API clients never submit a business ID, and financial credentials remain backend-only.
 
 ## Deployment
 

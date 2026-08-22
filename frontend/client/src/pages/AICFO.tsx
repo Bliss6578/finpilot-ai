@@ -1,6 +1,7 @@
 /** AI CFO answers are rendered only from the authenticated workspace API. */
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Database, RefreshCw, Send, Sparkles } from "lucide-react";
+import { Check, Database, RefreshCw, Send, Sparkles } from "lucide-react";
+import { useLocation } from "wouter";
 import { Panel, SectionLabel } from "@/components/finpilot-ui";
 import { askAICFO, fetchAICFOContext, type AICFOContext, type AICFOResponse } from "@/services/api";
 
@@ -20,6 +21,8 @@ export default function AICFO() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [context, setContext] = useState<AICFOContext | null>(null);
   const [thinking, setThinking] = useState(false);
+  const [conversationId, setConversationId] = useState<string>();
+  const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +48,8 @@ export default function AICFO() {
     setThinking(true);
     setError(null);
     try {
-      const response = await askAICFO(cleanQuestion);
+      const response = await askAICFO(cleanQuestion, conversationId);
+      setConversationId(response.conversation_id);
       setMessages(current => [...current, { role: "assistant", response }]);
       await loadContext();
     } catch {
@@ -84,7 +88,7 @@ export default function AICFO() {
             <h2>Ask the question behind the numbers.</h2>
             <p>FinPilot distinguishes measured evidence from modeled assumptions and says when a data source is missing.</p>
           </div>}
-          {messages.map((message, index) => <ChatMessage key={`${message.role}-${index}`} message={message} />)}
+          {messages.map((message, index) => <ChatMessage key={`${message.role}-${index}`} message={message} onAction={setLocation} />)}
           {thinking && <div className="message">
             <div className="message-avatar"><Sparkles /></div>
             <div className="message-copy"><div className="answer-heading"><i />FinPilot is analysing this workspace</div><span className="id-code">Comparing payments, refunds, settlements and forecast evidence…</span></div>
@@ -116,7 +120,7 @@ export default function AICFO() {
   </>;
 }
 
-function ChatMessage({ message }: { message: Message }) {
+function ChatMessage({ message, onAction }: { message: Message; onAction: (path: string) => void }) {
   if (message.role === "user") return <div className="message user"><div className="message-avatar user-avatar">Y</div><div className="message-copy">{message.text}</div></div>;
   const { response } = message;
   return <div className="message">
@@ -124,8 +128,10 @@ function ChatMessage({ message }: { message: Message }) {
     <div className="message-copy">
       <div className="answer-heading"><i />FinPilot analysis · {response.evidence.mode} mode</div>
       <p>{response.answer}</p>
+      {!!response.tools_used?.length && <div className="id-code">{response.tools_used.map(tool => <span key={tool} style={{ marginRight: 14 }}><Check size={12} /> {tool.replaceAll("_", " ")}</span>)}</div>}
       <div className="answer-metrics">{response.metrics.map(metric => <div className="answer-metric" key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.detail}</small></div>)}</div>
       <div className="recommendation"><span>Evidence-backed recommendation</span><p>{response.recommendation}</p></div>
+      {!!response.actions?.length && <div className="suggested-list">{response.actions.map(action => <button className="button-secondary" key={action.action} onClick={() => onAction(action.action.includes("scenario") ? "/scenario-lab" : action.action.includes("cash") ? "/cash-flow" : "/transactions")}>{action.label}</button>)}</div>}
       <div className="id-code">Sources · {response.evidence.sources.join(" · ")}</div>
     </div>
   </div>;

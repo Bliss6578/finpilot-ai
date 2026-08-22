@@ -18,6 +18,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchFinancialAlerts } from "@/services/api";
 
 const navigation = [
   { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
@@ -25,7 +26,7 @@ const navigation = [
   { href: "/cash-flow", label: "Cash Flow", icon: ChartNoAxesCombined },
   { href: "/ai-cfo", label: "AI CFO", icon: Sparkles },
   { href: "/scenario-lab", label: "Scenario Lab", icon: FlaskConical },
-  { href: "/alerts", label: "Alerts", icon: Bell, count: 2 },
+  { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -54,6 +55,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [compact, setCompact] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
   const { session, logout } = useAuth();
   const businessName = session?.business.name ?? "Business";
   const userName = session?.user.full_name ?? "User";
@@ -79,6 +81,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
     navigation.findIndex(item => item.href === activePath)
   );
   const nextPage = navigation[(activeIndex + 1) % navigation.length];
+  useEffect(() => {
+    if (!session) return;
+    fetchFinancialAlerts(false).then(result => setUnreadAlerts(result.unread)).catch(() => setUnreadAlerts(0));
+  }, [session, location]);
   useEffect(() => {
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -171,7 +177,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </button>
         </Link>
         <nav>
-          {navigation.map(({ href, label, icon: Icon, count }, index) => (
+          {navigation.map(({ href, label, icon: Icon }, index) => (
             <Link
               key={href}
               href={href}
@@ -180,7 +186,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <Icon />
               <small>{String(index + 1).padStart(2, "0")}</small>
               <span>{label}</span>
-              {count ? <b>{count}</b> : null}
+              {href === "/alerts" && unreadAlerts ? <b>{unreadAlerts}</b> : null}
             </Link>
           ))}
         </nav>
@@ -250,7 +256,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell />
-              <i />
+              {unreadAlerts ? <i /> : null}
             </Link>
             <Link href="/ai-cfo" className="ask-button">
               <Sparkles />

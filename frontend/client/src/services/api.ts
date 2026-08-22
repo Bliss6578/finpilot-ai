@@ -163,12 +163,18 @@ export type AICFOContext = {
   };
 };
 export type AICFOResponse = {
+  conversation_id: string;
   answer: string;
   recommendation: string;
+  classification: "fact" | "forecast" | "recommendation";
   metrics: { label: string; value: string; detail: string }[];
+  insights: { type: "positive" | "warning"; title: string; value: string }[];
+  actions: { label: string; action: string }[];
+  tools_used: string[];
+  engine: string;
   suggestions: string[];
   evidence: {
-    business_id: string;
+    tenant_scope: "authenticated_workspace";
     mode: "test" | "live";
     period_days: number;
     latest_data_at: string | null;
@@ -176,6 +182,28 @@ export type AICFOResponse = {
     sources: string[];
   };
 };
+export type FinancialSummary = {
+  as_of: string;
+  currency: string;
+  current: Record<string, number | string>;
+  previous: Record<string, number | string>;
+  changes: { net_revenue_percent: number | null; net_cashflow_percent: number | null; failure_rate_points: number; refund_rate_points: number };
+  cash: { current_paise: number | null; monthly_outflow_paise: number; monthly_net_burn_paise: number; runway_months: number | null; target_runway_months: number; minimum_reserve_paise: number };
+  health: { score: number; status: string; components: Record<string, number>; limitations: string[] };
+  data_completeness: Record<string, boolean>;
+  forecast: CashflowResponse;
+};
+export type ScenarioResult = {
+  scenario_type: string;
+  currency: string;
+  baseline: { monthly_inflow_paise: number; monthly_outflow_paise: number; monthly_net_burn_paise: number; runway_months: number | null; cash_90d_paise: number; break_even_revenue_paise: number };
+  scenario: { monthly_inflow_paise: number; monthly_outflow_paise: number; monthly_net_burn_paise: number; runway_months: number | null; cash_90d_paise: number; break_even_revenue_paise: number };
+  difference: { monthly_outflow_paise: number; runway_months: number | null; cash_90d_paise: number };
+  disclaimer: string;
+};
+export type FinancialAlert = { id: string; type: string; severity: "critical" | "warning" | "info"; title: string; description: string; metric_value: number | null; baseline_value: number | null; status: string; evidence: Record<string, unknown>; created_at: string };
+export type BusinessProfile = { name: string; currency: string; industry: string | null; website: string | null; current_cash: number | null; monthly_budget: number | null; monthly_fixed_expenses: number | null; minimum_reserve: number; target_runway_months: number; target_growth_rate: number | null; risk_tolerance: "conservative" | "moderate" | "aggressive" };
+export type ExpenseRecord = { id: string; category: string; description: string | null; amount: number; expense_type: string; recurring: boolean; expense_date: string };
 export async function fetchDashboard() {
   return (await api.get<DashboardResponse>("/api/dashboard")).data;
 }
@@ -199,9 +227,19 @@ export async function fetchCashflow(historyDays = 60, forecastDays = 30) {
 export async function fetchAICFOContext() {
   return (await api.get<AICFOContext>("/api/ai-cfo/context")).data;
 }
-export async function askAICFO(question: string) {
-  return (await api.post<AICFOResponse>("/api/ai-cfo/ask", { question })).data;
+export async function askAICFO(question: string, conversationId?: string) {
+  return (await api.post<AICFOResponse>("/api/v1/cfo/chat", { message: question, conversation_id: conversationId })).data;
 }
+export async function fetchFinancialSummary(days = 30) { return (await api.get<FinancialSummary>("/api/v1/dashboard/summary", { params: { days } })).data; }
+export async function simulateScenario(type: string, parameters: Record<string, number>) { return (await api.post<ScenarioResult>("/api/v1/scenarios/simulate", { type, parameters })).data; }
+export async function fetchFinancialAlerts(refresh = false) { return (await api.get<{ items: FinancialAlert[]; unread: number }>("/api/v1/alerts", { params: { refresh } })).data; }
+export async function markFinancialAlertRead(alertId: string) { return (await api.patch<{ status: string }>(`/api/v1/alerts/${alertId}`)).data; }
+export async function fetchBusinessProfile() { return (await api.get<BusinessProfile>("/api/v1/settings/business-profile")).data; }
+export async function updateBusinessProfile(profile: Partial<BusinessProfile>) { return (await api.put<BusinessProfile>("/api/v1/settings/business-profile", profile)).data; }
+export async function fetchExpenses() { return (await api.get<{ items: ExpenseRecord[]; total: number }>("/api/v1/expenses")).data; }
+export async function createExpense(expense: Omit<ExpenseRecord, "id">) { return (await api.post<{ id: string; created: boolean }>("/api/v1/expenses", expense)).data; }
+export async function deleteExpense(expenseId: string) { return (await api.delete<{ deleted: boolean }>(`/api/v1/expenses/${expenseId}`)).data; }
+export async function fetchCFOConversation(conversationId: string) { return (await api.get<{ id: string; title: string; messages: { id: string; role: "user" | "assistant"; content: string; structured_content: AICFOResponse; created_at: string }[] }>(`/api/v1/cfo/conversations/${conversationId}`)).data; }
 export async function syncRazorpay() {
   return (await api.post<SyncResult>("/api/razorpay/sync")).data;
 }

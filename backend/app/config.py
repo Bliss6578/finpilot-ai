@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     render_external_hostname: str = ""
     resend_api_key: str = ""
     email_from: str = "FinPilot <onboarding@resend.dev>"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.6"
+    demo_mode: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -65,6 +68,10 @@ class Settings(BaseSettings):
     @property
     def email_configured(self) -> bool:
         return self.resend_api_key.startswith("re_") and bool(self.email_from)
+
+    @property
+    def openai_configured(self) -> bool:
+        return self.openai_api_key.startswith("sk-")
 
 
 @lru_cache

@@ -13,15 +13,16 @@ import {
 } from "@/components/finpilot-ui";
 import {
   currency,
-  healthMetrics,
   transactions as mockTransactions,
 } from "@/data/mockData";
 import {
   fetchDashboard,
   fetchCashflow,
+  fetchFinancialSummary,
   type ApiTransaction,
   type CashflowResponse,
   type DashboardResponse,
+  type FinancialSummary,
 } from "@/services/api";
 
 const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState(false);
   const [cashflow, setCashflow] = useState<CashflowResponse | null>(null);
+  const [intelligence, setIntelligence] = useState<FinancialSummary | null>(null);
   useEffect(() => {
     if (demoMode) return;
     fetchDashboard()
@@ -57,6 +59,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (demoMode) return;
     fetchCashflow(90, 90).then(setCashflow).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (demoMode) return;
+    fetchFinancialSummary().then(setIntelligence).catch(() => undefined);
   }, []);
   const recent: (ApiTransaction | (typeof mockTransactions)[number])[] =
     demoMode ? mockTransactions.slice(0, 5) : data.recent_transactions;
@@ -109,10 +115,10 @@ export default function Dashboard() {
       )}
       <section className="panel health-panel">
         <div className="health-left">
-          <HealthGauge />
+          <HealthGauge score={intelligence?.health.score ?? 0} />
           <div>
             <SectionLabel>Financial health</SectionLabel>
-            <h2>Excellent condition</h2>
+            <h2>{intelligence?.health.status ?? "Calculating condition"}</h2>
             <p>{cashflow?.data_source === "razorpay_history" ? "Forecast is personalized from workspace history." : cashflow?.data_source === "razorpay_plus_dataset" ? "Current Razorpay activity is blended with the retail model until enough history is available." : "Forecast uses the isolated retail dataset prior."}</p>
             <p className="health-improved">Cash-flow model is active</p>
           </div>
@@ -123,8 +129,8 @@ export default function Dashboard() {
             <span>{cashflow ? "Dataset model active" : "Loading forecast evidence"}</span>
           </div>
           <div className="health-metrics">
-            {healthMetrics.map(metric => (
-              <HealthMetric key={metric.label} {...metric} />
+            {Object.entries(intelligence?.health.components ?? {}).map(([label, value]) => (
+              <HealthMetric key={label} label={label.replaceAll("_", " ")} value={value} />
             ))}
           </div>
         </div>
@@ -182,9 +188,10 @@ export default function Dashboard() {
           <InsightCard
             tone="positive"
             icon={<Sparkles />}
-            title="Live connection"
+            title="Ask the AI CFO"
+            action={<Link href="/ai-cfo">Open conversation</Link>}
           >
-            FinPilot is reading transaction data through the secure backend API.
+            {intelligence?.cash.runway_months == null ? "Add current cash and expenses to unlock runway analysis." : `${intelligence.cash.runway_months.toFixed(1)} months of runway based on verified inflows and recorded outflows.`}
           </InsightCard>
         </div>
       </section>

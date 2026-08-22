@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Refund, Settlement, Transaction
 from app.services.cashflow import build_cashflow
+from app.services.financial_engine import financial_summary
 
 
 PERIOD_DAYS = 30
@@ -159,6 +160,7 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
     previous: PeriodMetrics = context["previous"]
     cashflow = context["cashflow"]
     normalized = question.casefold()
+    intelligence = financial_summary(db, business_id, mode, PERIOD_DAYS)
     has_data = current.attempts + previous.attempts + current.refund_count + previous.refund_count > 0
 
     if not has_data:
@@ -223,14 +225,29 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             _metric("Captured", _inr(current.gross_paise), "Payment evidence"),
             _metric("Previous period", _inr(previous.settled_paise), f"{previous.settlement_count} processed"),
         ]
-    elif any(term in normalized for term in ("cash", "forecast", "runway", "reserve", "risk")):
+    elif any(term in normalized for term in ("health", "score", "condition")):
+        health = intelligence["health"]
+        answer = (
+            f"The deterministic financial health score is {health['score']} out of 100 ({health['status'].replace('_', ' ')}). "
+            f"Its components are runway {health['components']['runway']}, growth {health['components']['growth']}, cash flow {health['components']['cashflow']}, payments {health['components']['payments']}, and refunds {health['components']['refunds']}."
+        )
+        recommendation = health["limitations"][0] if health["limitations"] else "Review the lowest-scoring component first; the score is calculated by FinPilot, not estimated by the language layer."
+        metrics = [
+            _metric("Health score", f"{health['score']} / 100", health["status"].replace("_", " ").title()),
+            _metric("Payment health", str(health["components"]["payments"]), "Deterministic component"),
+            _metric("Cash-flow health", str(health["components"]["cashflow"]), "Deterministic component"),
+        ]
+    elif any(term in normalized for term in ("cash", "forecast", "runway", "reserve", "risk", "burn", "hire", "marketing", "afford", "spend")):
         summary = cashflow["summary"]
         source = cashflow["data_source"]
-        answer = (
-            f"The 30-day modeled closing cash position is ₹{summary['forecast_closing_balance']:,.0f}, with a projected low of ₹{summary['lowest_balance']:,.0f} on {summary['lowest_balance_date']}. "
-            f"Risk is {summary['risk_level']}. The forecast source is {source.replace('_', ' ')}."
-        )
-        recommendation = "Treat this as a planning model, not a bank balance. Confirm the opening cash balance and connect expenses before making a high-value commitment."
+        runway = intelligence["cash"]["runway_months"]
+        burn = intelligence["cash"]["monthly_net_burn_paise"]
+        answer = f"The 30-day modeled closing cash position is ₹{summary['forecast_closing_balance']:,.0f}, with a projected low of ₹{summary['lowest_balance']:,.0f} on {summary['lowest_balance_date']}. Risk is {summary['risk_level']}."
+        if runway is None:
+            answer += " Verified runway is unavailable because current cash and complete expense data are not both available."
+        else:
+            answer += f" Deterministic monthly net burn is {_inr(burn)} and runway is {runway:.1f} months."
+        recommendation = "Add current cash and expenses in Settings before making a high-value commitment." if runway is None else "Run the decision in Scenario Lab before committing cash; forecasts are planning estimates, not guarantees."
         metrics = [
             _metric("Modeled close", f"₹{summary['forecast_closing_balance']:,.0f}", "Next 30 days"),
             _metric("Projected low", f"₹{summary['lowest_balance']:,.0f}", summary["lowest_balance_date"]),
@@ -248,13 +265,37 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             _metric("Settled", _inr(current.settled_paise), f"{current.settlement_count} processed"),
         ]
 
+    tool_names = ["get_financial_summary"]
+    if any(term in normalized for term in ("refund", "return")):
+        tool_names += ["get_refunds", "compare_periods"]
+    elif any(term in normalized for term in ("cash", "forecast", "runway", "reserve", "risk", "burn", "hire", "marketing", "afford", "spend")):
+        tool_names += ["get_cashflow", "calculate_burn_and_runway", "forecast_cashflow"]
+    elif any(term in normalized for term in ("health", "score", "condition")):
+        tool_names += ["get_financial_health_score"]
+    elif any(term in normalized for term in ("settle", "bank", "payout")):
+        tool_names += ["get_settlements"]
+    elif any(term in normalized for term in ("success", "fail", "capture", "payment")):
+        tool_names += ["get_transactions", "compare_periods"]
+    else:
+        tool_names += ["get_revenue", "compare_periods"]
     return {
         "answer": answer,
         "recommendation": recommendation,
+        "classification": "recommendation",
         "metrics": metrics,
+        "insights": [
+            {"type": "positive" if current.net_proceeds_paise >= 0 else "warning", "title": "Net payment proceeds", "value": _inr(current.net_proceeds_paise)},
+            {"type": "warning" if current.failed else "positive", "title": "Payment success", "value": f"{current.success_rate:.1f}%"},
+        ],
+        "actions": [
+            {"label": "Run a scenario", "action": "open_scenario_lab"},
+            {"label": "View cash-flow forecast", "action": "open_cashflow"},
+        ],
+        "tools_used": tool_names,
+        "engine": "deterministic_financial_tools",
         "suggestions": context["suggestions"],
         "evidence": {
-            "business_id": business_id,
+            "tenant_scope": "authenticated_workspace",
             "mode": mode,
             "period_days": PERIOD_DAYS,
             "latest_data_at": context["latest_data_at"],
