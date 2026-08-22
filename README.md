@@ -1,6 +1,6 @@
-# FinPilot AI
+# Paymentor
 
-FinPilot is a private-beta finance intelligence workspace for businesses using Razorpay. It combines a React/Vite frontend with a FastAPI backend and PostgreSQL.
+Paymentor is a private-beta finance intelligence workspace for businesses using Razorpay. It combines a React/Vite frontend with a FastAPI backend and PostgreSQL.
 
 ## Project structure
 
@@ -31,7 +31,7 @@ uvicorn app.main:app --reload --port 8000
 
 ## Dataset-backed cash-flow model
 
-FinPilot includes an explainable demo prior trained from the UCI Online Retail II dataset. The committed JSON artifact contains only aggregate seasonality and return-rate parameters; the 45 MB source workbook is not committed or loaded by the production API.
+Paymentor includes an explainable demo prior trained from the UCI Online Retail II dataset. The committed JSON artifact contains only aggregate seasonality and return-rate parameters; the 45 MB source workbook is not committed or loaded by the production API.
 
 To reproduce the artifact locally:
 
@@ -48,7 +48,7 @@ Source: https://archive.ics.uci.edu/dataset/502/online+retail+ii
 
 ## FinQA symbolic reasoning router
 
-FinPilot can learn finance-question operation patterns from FinQA without using
+Paymentor can learn finance-question operation patterns from FinQA without using
 the source reports as client evidence. Build the compact artifact locally:
 
 ```bash
