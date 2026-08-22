@@ -173,6 +173,7 @@ export type AICFOResponse = {
   actions: { label: string; action: string }[];
   tools_used: string[];
   engine: string;
+  scenario_result?: ScenarioResponse;
   llm?: { provider: "openai"; model: string; grounded: boolean; fallback: boolean };
   agent?: {
     plan: { domain: string; intent: string; period_days: number; tools: string[]; scenario_type?: string | null; scenario_parameters?: Record<string, number> | null };

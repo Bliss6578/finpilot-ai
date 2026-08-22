@@ -28,6 +28,8 @@ def simulate(summary: dict[str, Any], scenario_type: str, parameters: dict[str, 
     elif scenario_type == "expense_reduction":
         reduction = min(max(parameters.get("expense_change_percent", 0), 0), 100)
         monthly_outflow = round(monthly_outflow * (1 - reduction / 100))
+    elif scenario_type == "one_time_purchase":
+        pass
     elif scenario_type == "custom":
         monthly_inflow = round(monthly_inflow * (1 + parameters.get("revenue_change_percent", 0) / 100))
         monthly_outflow = round(monthly_outflow * (1 + parameters.get("expense_change_percent", 0) / 100))

@@ -45,7 +45,7 @@ class ExpenseCreate(BaseModel):
 
 
 class ScenarioRequest(BaseModel):
-    type: Literal["new_hire", "marketing", "revenue_change", "expense_reduction", "custom"]
+    type: Literal["new_hire", "marketing", "revenue_change", "expense_reduction", "one_time_purchase", "custom"]
     parameters: dict[str, float] = Field(default_factory=dict)
 
 

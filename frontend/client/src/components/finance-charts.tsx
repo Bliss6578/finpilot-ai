@@ -94,8 +94,8 @@ export function CashFlowChart({
           >
             <defs>
               <linearGradient id="actualArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#635BFF" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#635BFF" stopOpacity={0} />
+                <stop offset="0%" stopColor="#39BFFF" stopOpacity={0.24} />
+                <stop offset="100%" stopColor="#39BFFF" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="riskArea" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#F59E0B" stopOpacity={0} />
@@ -104,7 +104,7 @@ export function CashFlowChart({
             </defs>
             <CartesianGrid
               vertical={false}
-              stroke="#E7E8ED"
+              stroke="#17345D"
               strokeDasharray="3 3"
             />
             <XAxis
@@ -140,7 +140,7 @@ export function CashFlowChart({
             <Area
               type="monotone"
               dataKey="actual"
-              stroke="#635BFF"
+              stroke="#39BFFF"
               strokeWidth={3}
               fill="url(#actualArea)"
               connectNulls={false}
@@ -151,7 +151,7 @@ export function CashFlowChart({
             <Line
               type="monotone"
               dataKey="forecast"
-              stroke="#635BFF"
+              stroke="#39BFFF"
               strokeWidth={3}
               strokeDasharray="7 6"
               dot={false}
@@ -224,7 +224,7 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
         >
           <CartesianGrid
             vertical={false}
-            stroke="#E7E8ED"
+            stroke="#17345D"
             strokeDasharray="3 3"
           />
           <XAxis
@@ -246,7 +246,7 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
             type="monotone"
             dataKey="forecast"
             name="Current forecast"
-            stroke="#A9AEC1"
+            stroke="#7695B8"
             strokeWidth={2.5}
             dot={false}
             isAnimationActive={!reducedMotion}
@@ -256,7 +256,7 @@ export function ScenarioChart({ scenario }: { scenario: number }) {
             type="monotone"
             dataKey="scenario"
             name="Scenario forecast"
-            stroke="#635BFF"
+            stroke="#39BFFF"
             strokeWidth={3}
             dot={false}
             isAnimationActive={!reducedMotion}

@@ -88,19 +88,31 @@ def _period_days(question: str) -> int:
     return 30
 
 
-def _money_paise(question: str) -> int | None:
-    matches = list(re.finditer(r"(?:₹|rs\.?|inr)\s*(\d[\d,]*(?:\.\d+)?)\s*(lakh|lac|crore|k)?|(?<!\w)(\d[\d,]*(?:\.\d+)?)\s*(lakh|lac|crore|k)(?!\w)", question.casefold()))
+MONEY_PATTERN = re.compile(r"(?:₹|rs\.?|inr)\s*(\d[\d,]*(?:\.\d+)?)\s*(lakh|lac|crore|k)?|(?<!\w)(\d[\d,]*(?:\.\d+)?)\s*(lakh|lac|crore|k)(?!\w)")
+
+
+def _money_matches(question: str) -> list[tuple[int, int, int]]:
+    matches = list(MONEY_PATTERN.finditer(question.casefold()))
     if not matches:
         plain = list(re.finditer(r"(?<!\w)(\d[\d,]{2,}(?:\.\d+)?)(?!\w)", question.casefold()))
         matches = plain[-1:] if plain else []
-    if not matches:
+    values = []
+    for match in matches:
+        amount = match.group(1) or (match.group(3) if match.lastindex and match.lastindex >= 3 else None)
+        suffix = match.group(2) or (match.group(4) if match.lastindex and match.lastindex >= 4 else None)
+        value = float((amount or "0").replace(",", ""))
+        multiplier = {"k": 1_000, "lakh": 100_000, "lac": 100_000, "crore": 10_000_000}.get(suffix or "", 1)
+        values.append((match.start(), match.end(), round(value * multiplier * 100)))
+    return values
+
+
+def _money_near(question: str, keywords: tuple[str, ...]) -> int | None:
+    normalized = question.casefold()
+    values = _money_matches(question)
+    positions = [normalized.find(keyword) for keyword in keywords if keyword in normalized]
+    if not values or not positions:
         return None
-    match = matches[-1]
-    amount = match.group(1) or (match.group(3) if match.lastindex and match.lastindex >= 3 else None)
-    suffix = match.group(2) or (match.group(4) if match.lastindex and match.lastindex >= 4 else None)
-    value = float((amount or "0").replace(",", ""))
-    multiplier = {"k": 1_000, "lakh": 100_000, "lac": 100_000, "crore": 10_000_000}.get(suffix or "", 1)
-    return round(value * multiplier * 100)
+    return min(values, key=lambda item: min(abs(item[0] - position) for position in positions))[2]
 
 
 def _percent(question: str) -> float | None:
@@ -108,20 +120,64 @@ def _percent(question: str) -> float | None:
     return float(match.group(1)) if match else None
 
 
+def _percent_near(question: str, keywords: tuple[str, ...]) -> float | None:
+    normalized = question.casefold()
+    matches = list(re.finditer(r"(-?\d+(?:\.\d+)?)\s*%", normalized))
+    positions = [normalized.find(keyword) for keyword in keywords if keyword in normalized]
+    if not matches or not positions:
+        return None
+    following = [match for match in matches if any(0 <= match.start() - position <= 45 for position in positions)]
+    if following:
+        match = min(following, key=lambda item: min(item.start() - position for position in positions if item.start() >= position))
+        return float(match.group(1))
+    match = min(matches, key=lambda item: min(abs(item.start() - position) for position in positions))
+    return float(match.group(1))
+
+
 def _scenario(question: str) -> tuple[str | None, dict[str, float] | None]:
     normalized = question.casefold()
-    money = _money_paise(question)
     percent = _percent(question)
-    if any(term in normalized for term in ("hire", "salary", "employee")) and money is not None:
-        count_match = re.search(r"(?:hire|add)\s+(\d+)", normalized)
-        return "new_hire", {"employees": float(count_match.group(1)) if count_match else 1.0, "monthly_salary_paise": float(money)}
-    if any(term in normalized for term in ("marketing", "advertising", "campaign")) and money is not None:
-        return "marketing", {"monthly_budget_paise": float(money)}
+    components: list[str] = []
+    parameters: dict[str, float] = {}
+    hire_money = _money_near(question, ("salary", "hire", "employee", "developer", "person", "people"))
+    if any(term in normalized for term in ("hire", "salary", "employee", "developer")) and hire_money is not None:
+        count_match = re.search(r"(?:hire|add|employ)\s+(\d+)", normalized)
+        employees = float(count_match.group(1)) if count_match else 1.0
+        salary = hire_money / 12 if any(term in normalized for term in ("per year", "annual salary", "annually", "per annum")) else hire_money
+        parameters.update(employees=employees, monthly_salary_paise=float(salary))
+        parameters["monthly_cost_paise"] = employees * salary
+        components.append("hire")
+    marketing_money = _money_near(question, ("marketing", "advertising", "campaign", "ads"))
+    if any(term in normalized for term in ("marketing", "advertising", "campaign", "ad spend", "ads")) and marketing_money is not None:
+        parameters["monthly_budget_paise"] = float(marketing_money)
+        parameters["monthly_cost_paise"] = parameters.get("monthly_cost_paise", 0) + marketing_money
+        components.append("marketing")
     if any(term in normalized for term in ("revenue", "sales")) and percent is not None:
-        signed = -abs(percent) if any(term in normalized for term in ("drop", "decrease", "fall", "down")) else percent
-        return "revenue_change", {"revenue_change_percent": signed}
-    if any(term in normalized for term in ("reduce expense", "cut cost", "expense reduction")) and percent is not None:
-        return "expense_reduction", {"expense_change_percent": abs(percent)}
+        revenue_percent = _percent_near(question, ("revenue", "sales")) or percent
+        signed = -abs(revenue_percent) if any(term in normalized for term in ("drop", "decrease", "fall", "down")) else revenue_percent
+        parameters["revenue_change_percent"] = signed
+        components.append("revenue")
+    if any(term in normalized for term in ("reduce expense", "reduce cost", "cut cost", "cut expense", "expense reduction", "cost reduction")) and percent is not None:
+        expense_percent = _percent_near(question, ("expense", "expenses", "cost", "costs")) or percent
+        parameters["expense_change_percent"] = -abs(expense_percent)
+        components.append("expense_reduction")
+    purchase_money = _money_near(question, ("purchase", "buy", "equipment", "machine", "one-time", "one time", "capex"))
+    if any(term in normalized for term in ("purchase", "buy", "equipment", "machine", "one-time", "one time", "capex")) and purchase_money is not None:
+        parameters["one_time_paise"] = float(purchase_money)
+        components.append("one_time_purchase")
+    unique = list(dict.fromkeys(components))
+    if len(unique) > 1:
+        return "custom", parameters
+    if unique == ["hire"]:
+        return "new_hire", {key: parameters[key] for key in ("employees", "monthly_salary_paise")}
+    if unique == ["marketing"]:
+        return "marketing", {"monthly_budget_paise": parameters["monthly_budget_paise"]}
+    if unique == ["revenue"]:
+        return "revenue_change", {"revenue_change_percent": parameters["revenue_change_percent"]}
+    if unique == ["expense_reduction"]:
+        return "expense_reduction", {"expense_change_percent": abs(parameters["expense_change_percent"])}
+    if unique == ["one_time_purchase"]:
+        return "one_time_purchase", {"one_time_paise": parameters["one_time_paise"]}
     return None, None
 
 
@@ -166,6 +222,13 @@ def _scenario_answer(summary: dict[str, Any], plan: AgentPlan) -> dict[str, Any]
             {"label": "Runway", "value": runway, "detail": "Deterministic estimate"},
         ],
         "actions": [{"label": "Open Scenario Lab", "action": "open_scenario_lab"}],
+        "scenario_result": result,
+        "suggestions": [
+            "What if revenue decreases by 10%?",
+            "Can I hire 2 people at ₹50,000 per month?",
+            "What happens if I cut expenses by 8%?",
+            "Can I afford a one-time purchase of ₹2 lakh?",
+        ],
     }
 
 
