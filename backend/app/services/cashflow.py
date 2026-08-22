@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import math
-import statistics
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
@@ -13,7 +12,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Refund, Transaction
+from app.models import Business, Expense, Refund, Transaction
 
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "data" / "retail_cashflow_model.json"
@@ -23,6 +22,7 @@ BUSINESS_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 @lru_cache
 def load_retail_model() -> dict[str, Any]:
+    """Retained as an auditable training artifact; client forecasts never read it."""
     return json.loads(MODEL_PATH.read_text(encoding="utf-8"))
 
 
@@ -30,18 +30,6 @@ def _as_business_day(value: datetime) -> date:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(BUSINESS_TIMEZONE).date()
-
-
-def _seasonal_multiplier(model: dict[str, Any], day: date) -> float:
-    training = model["training"]
-    weekday = float(training["weekday_multipliers"].get(str(day.weekday()), 1))
-    month = float(training["month_multipliers"].get(str(day.month), 1))
-    return max(weekday * month, 0.05)
-
-
-def _deterministic_variation(day: date) -> float:
-    """Stable demo variation: identical inputs always produce identical charts."""
-    return 1 + 0.08 * math.sin(day.toordinal() * 0.83) + 0.04 * math.cos(day.toordinal() * 0.31)
 
 
 def _tenant_daily_history(
@@ -81,25 +69,6 @@ def _tenant_daily_history(
     return dict(daily)
 
 
-def _demo_day(model: dict[str, Any], day: date) -> tuple[int, int]:
-    assumptions = model["demo_assumptions"]
-    inflow = round(
-        int(assumptions["baseline_daily_inflow_paise"])
-        * _seasonal_multiplier(model, day)
-        * _deterministic_variation(day)
-    )
-    outflow = round(
-        inflow
-        * (
-            float(assumptions["variable_cost_ratio"])
-            + float(assumptions["payment_fee_ratio"])
-            + float(model["training"]["return_rate"])
-        )
-        + int(assumptions["fixed_daily_opex_paise"])
-    )
-    return max(inflow, 0), max(outflow, 0)
-
-
 def build_cashflow(
     db: Session,
     business_id: str,
@@ -108,46 +77,34 @@ def build_cashflow(
     forecast_days: int = 30,
     today: date | None = None,
 ) -> dict[str, Any]:
-    model = load_retail_model()
     as_of = today or datetime.now(BUSINESS_TIMEZONE).date()
     history_start = as_of - timedelta(days=history_days - 1)
     tenant_daily = _tenant_daily_history(db, business_id, mode, history_start, as_of)
     active_tenant_days = sum(1 for value in tenant_daily.values() if value["inflow"] or value["outflow"])
-    use_tenant_history = active_tenant_days >= MINIMUM_TENANT_HISTORY_DAYS
-    has_tenant_history = active_tenant_days > 0
-    source = (
-        "razorpay_history"
-        if use_tenant_history
-        else "razorpay_plus_dataset"
-        if has_tenant_history
-        else "uci_online_retail_ii_demo"
-    )
-    assumptions = model["demo_assumptions"]
-    safe_reserve = int(assumptions["safe_reserve_paise"])
-    opening_balance = int(assumptions["opening_balance_paise"])
+    business = db.get(Business, business_id)
+    safe_reserve = int(business.minimum_reserve_paise if business else 0)
+    current_cash = int(business.current_cash_paise if business and business.current_cash_paise is not None else 0)
+    fixed_daily_opex = round((business.monthly_fixed_expenses_paise or 0) / 30) if business else 0
+    expenses = db.scalars(select(Expense).where(Expense.business_id == business_id, Expense.expense_date >= history_start, Expense.expense_date <= as_of)).all()
+    expenses_by_day: dict[date, int] = defaultdict(int)
+    for expense in expenses:
+        expenses_by_day[expense.expense_date] += expense.amount_paise
+
+    daily_nets: dict[date, int] = {}
+    for offset in range(history_days):
+        day = history_start + timedelta(days=offset)
+        record = tenant_daily.get(day, {"inflow": 0, "outflow": 0})
+        daily_nets[day] = record["inflow"] - record["outflow"] - expenses_by_day[day]
+    opening_balance = current_cash - sum(daily_nets.values())
 
     points: list[dict[str, Any]] = []
     balance = opening_balance
-    observed_inflows: list[int] = []
     for offset in range(history_days):
         day = history_start + timedelta(days=offset)
-        record = tenant_daily.get(day)
-        if record is not None:
-            inflow = record["inflow"]
-            outflow = round(
-                record["outflow"]
-                + inflow * float(assumptions["variable_cost_ratio"])
-                + int(assumptions["fixed_daily_opex_paise"])
-            )
-        elif use_tenant_history:
-            # A day without a payment still carries the modeled fixed operating cost.
-            inflow = 0
-            outflow = int(assumptions["fixed_daily_opex_paise"])
-        else:
-            inflow, outflow = _demo_day(model, day)
+        record = tenant_daily.get(day, {"inflow": 0, "outflow": 0})
+        inflow = record["inflow"]
+        outflow = record["outflow"] + expenses_by_day[day]
         balance += inflow - outflow
-        if inflow:
-            observed_inflows.append(inflow)
         points.append(
             {
                 "date": day.isoformat(),
@@ -161,35 +118,20 @@ def build_cashflow(
             }
         )
 
-    if has_tenant_history and observed_inflows:
-        observed_baseline = int(statistics.median(observed_inflows))
-        dataset_baseline = int(assumptions["baseline_daily_inflow_paise"])
-        personalization_weight = min(active_tenant_days / MINIMUM_TENANT_HISTORY_DAYS, 1)
-        baseline_inflow = round(
-            dataset_baseline * (1 - personalization_weight)
-            + observed_baseline * personalization_weight
-        )
-    else:
-        baseline_inflow = int(assumptions["baseline_daily_inflow_paise"])
+    baseline_inflow = round(sum(value["inflow"] for value in tenant_daily.values()) / history_days)
+    captured_total = sum(value["inflow"] for value in tenant_daily.values())
+    provider_cost_total = sum(value["outflow"] for value in tenant_daily.values())
+    provider_cost_ratio = provider_cost_total / captured_total if captured_total else 0.0
+    refund_total = sum(refund.amount_paise for refund in db.scalars(select(Refund).where(Refund.business_id == business_id, Refund.mode == mode, Refund.status == "processed")).all())
+    return_rate = min(refund_total / captured_total, 1.0) if captured_total else 0.0
 
     forecast_inflow_total = 0
     forecast_outflow_total = 0
     forecast_balances: list[tuple[date, int]] = []
     for offset in range(1, forecast_days + 1):
         day = as_of + timedelta(days=offset)
-        inflow = round(baseline_inflow * _seasonal_multiplier(model, day))
-        if has_tenant_history:
-            outflow = round(
-                inflow
-                * (
-                    float(assumptions["payment_fee_ratio"])
-                    + float(model["training"]["return_rate"])
-                    + float(assumptions["variable_cost_ratio"])
-                )
-                + int(assumptions["fixed_daily_opex_paise"])
-            )
-        else:
-            inflow, outflow = _demo_day(model, day)
+        inflow = baseline_inflow
+        outflow = round(inflow * provider_cost_ratio + fixed_daily_opex)
         balance += inflow - outflow
         forecast_inflow_total += inflow
         forecast_outflow_total += outflow
@@ -215,7 +157,7 @@ def build_cashflow(
         "as_of": as_of.isoformat(),
         "currency": "INR",
         "mode": mode,
-        "data_source": source,
+        "data_source": "workspace_financials",
         "summary": {
             "cash_available": cash_available,
             "forecast_closing_balance": round(forecast_balances[-1][1] / 100, 2),
@@ -227,18 +169,18 @@ def build_cashflow(
         "drivers": {
             "forecast_inflow": round(forecast_inflow_total / 100, 2),
             "forecast_outflow": round(forecast_outflow_total / 100, 2),
-            "return_rate": float(model["training"]["return_rate"]),
-            "variable_cost_ratio": float(assumptions["variable_cost_ratio"]),
-            "payment_fee_ratio": float(assumptions["payment_fee_ratio"]),
-            "fixed_daily_opex": round(int(assumptions["fixed_daily_opex_paise"]) / 100, 2),
+            "return_rate": return_rate,
+            "variable_cost_ratio": 0.0,
+            "payment_fee_ratio": provider_cost_ratio,
+            "fixed_daily_opex": round(fixed_daily_opex / 100, 2),
         },
         "model": {
-            "name": model["model_name"],
-            "trained_on": model["source"]["dataset"],
-            "training_period": [model["source"]["first_date"], model["source"]["last_date"]],
+            "name": "tenant_cashflow_baseline_v1",
+            "trained_on": "This workspace only",
+            "training_period": [history_start.isoformat(), as_of.isoformat()],
             "tenant_history_days": active_tenant_days,
             "minimum_tenant_history_days": MINIMUM_TENANT_HISTORY_DAYS,
-            "limitations": model["limitations"],
+            "limitations": ["Forecast confidence is limited until more workspace activity is available.", "Unrecorded bank balances and expenses are not inferred."],
         },
         "points": points,
     }

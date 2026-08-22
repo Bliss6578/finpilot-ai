@@ -30,6 +30,9 @@ class BusinessProfileUpdate(BaseModel):
     target_runway_months: Optional[float] = Field(default=None, ge=1, le=60)
     target_growth_rate: Optional[float] = Field(default=None, ge=-100, le=1000)
     risk_tolerance: Optional[Literal["conservative", "moderate", "aggressive"]] = None
+    ai_control_mode: Optional[Literal["observer", "advisor", "autopilot"]] = None
+    notification_preferences: Optional[dict[str, bool]] = None
+    scenario_preferences: Optional[dict[str, float]] = None
 
 
 class ExpenseCreate(BaseModel):
@@ -70,6 +73,9 @@ def get_business_profile(context: AuthContext = Depends(require_auth)) -> dict[s
         "minimum_reserve": _money(business.minimum_reserve_paise),
         "target_runway_months": business.target_runway_months,
         "target_growth_rate": business.target_growth_rate, "risk_tolerance": business.risk_tolerance,
+        "ai_control_mode": business.ai_control_mode,
+        "notification_preferences": business.notification_preferences or {},
+        "scenario_preferences": business.scenario_preferences or {},
     }
 
 
@@ -85,7 +91,7 @@ def update_business_profile(
     for field in ("current_cash", "monthly_budget", "monthly_fixed_expenses", "minimum_reserve"):
         if field in data:
             setattr(context.business, f"{field}_paise", None if data[field] is None else round(data[field] * 100))
-    for field in ("industry", "target_runway_months", "target_growth_rate", "risk_tolerance"):
+    for field in ("industry", "target_runway_months", "target_growth_rate", "risk_tolerance", "ai_control_mode", "notification_preferences", "scenario_preferences"):
         if field in data:
             setattr(context.business, field, data[field])
     if "website" in data:

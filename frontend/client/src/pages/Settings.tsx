@@ -31,9 +31,10 @@ const notifications = [
   "Unusual transactions",
   "Weekly finance report",
 ];
+const defaultNotifications = Object.fromEntries(notifications.map(name => [name, name !== "Settlement changes"]));
 export default function Settings() {
   const { session, logout, changePassword, refresh: refreshSession } = useAuth();
-  const [mode, setMode] = useState("Advisor");
+  const [mode, setMode] = useState<BusinessProfile["ai_control_mode"]>("advisor");
   const [syncing, setSyncing] = useState(false);
   const [connection, setConnection] = useState<RazorpayStatus | null>(null);
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
@@ -46,17 +47,11 @@ export default function Settings() {
   const [rotatingWebhook, setRotatingWebhook] = useState(false);
   const [webhookCredentials, setWebhookCredentials] = useState<RazorpayWebhookCredentials | null>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [savedProfile, setSavedProfile] = useState<BusinessProfile | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [expenseDraft, setExpenseDraft] = useState({ category: "Operating", amount: "", expense_date: new Date().toISOString().slice(0, 10) });
-  const [toggles, setToggles] = useState<Record<string, boolean>>({
-    "Cash flow risks": true,
-    "Payment failures": true,
-    "Refund spikes": true,
-    "Settlement changes": false,
-    "Unusual transactions": true,
-    "Weekly finance report": true,
-  });
+  const [toggles, setToggles] = useState<Record<string, boolean>>(defaultNotifications);
   const signOut = async () => {
     try {
       await logout();
@@ -128,7 +123,11 @@ export default function Settings() {
   };
   useEffect(() => {
     void refreshStatus();
-    fetchBusinessProfile().then(setProfile).catch(() => undefined);
+    fetchBusinessProfile().then(next => {
+      setProfile(next); setSavedProfile(next);
+      setMode(next.ai_control_mode ?? "advisor");
+      setToggles({ ...defaultNotifications, ...(next.notification_preferences ?? {}) });
+    }).catch(() => undefined);
     fetchExpenses().then(result => setExpenses(result.items)).catch(() => undefined);
   }, []);
   const addExpense = async (event: FormEvent) => {
@@ -254,8 +253,10 @@ export default function Settings() {
     if (!profile) return;
     setSavingProfile(true);
     try {
-      setProfile(await updateBusinessProfile(profile));
-      toast.success("Financial policy saved", { description: "Health, runway, alerts and scenarios now use these values." });
+      const next = await updateBusinessProfile({ ...profile, ai_control_mode: mode, notification_preferences: toggles });
+      setProfile(next); setSavedProfile(next);
+      setMode(next.ai_control_mode); setToggles({ ...defaultNotifications, ...next.notification_preferences });
+      toast.success("Workspace settings saved", { description: "Cash policy, AI mode and notifications are stored for this client." });
     } catch (reason: any) {
       toast.error("Unable to save financial policy", { description: reason?.response?.data?.detail ?? "Please check the entered values." });
     } finally {
@@ -503,8 +504,8 @@ export default function Settings() {
               ].map(([name, description]) => (
                 <button
                   key={name}
-                  onClick={() => setMode(name)}
-                  className={`mode-option ${mode === name ? "active" : ""}`}
+                  onClick={() => setMode(name.toLowerCase() as BusinessProfile["ai_control_mode"])}
+                  className={`mode-option ${mode === name.toLowerCase() ? "active" : ""}`}
                 >
                   <strong>{name}</strong>
                   <span>{description}</span>
@@ -514,7 +515,7 @@ export default function Settings() {
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Notification preferences</SectionLabel>
-            <h2>Keep Maya informed</h2>
+            <h2>Keep your team informed</h2>
             <div className="toggle-list">
               {notifications.map(name => (
                 <button
@@ -536,7 +537,7 @@ export default function Settings() {
             </div>
           </Panel>
           <div className="save-bar">
-            <button className="button-secondary">Discard</button>
+            <button className="button-secondary" onClick={() => { if (!savedProfile) return; setProfile(savedProfile); setMode(savedProfile.ai_control_mode); setToggles({ ...defaultNotifications, ...savedProfile.notification_preferences }); }}>Discard</button>
             <button className="button-primary" onClick={() => void save()} disabled={savingProfile || !profile}>
               {savingProfile ? "Saving…" : "Save changes"}
             </button>
@@ -549,7 +550,7 @@ export default function Settings() {
             <Preference label="Reserve" value={`₹${(profile?.minimum_reserve ?? 0).toLocaleString("en-IN")}`} />
             <Preference label="Target runway" value={`${profile?.target_runway_months ?? 12} months`} />
             <Preference label="Risk sensitivity" value={profile?.risk_tolerance ?? "moderate"} />
-            <Preference label="AI mode" value={mode} />
+            <Preference label="AI mode" value={mode.charAt(0).toUpperCase() + mode.slice(1)} />
           </Panel>
           <Panel>
             <SectionLabel>Data mode</SectionLabel>

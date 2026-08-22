@@ -145,6 +145,9 @@ class Business(Base):
     target_runway_months: Mapped[float] = mapped_column(Float, default=12.0)
     target_growth_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     risk_tolerance: Mapped[str] = mapped_column(String(24), default="moderate")
+    ai_control_mode: Mapped[str] = mapped_column(String(24), default="advisor")
+    notification_preferences: Mapped[dict] = mapped_column(JSON, default=dict)
+    scenario_preferences: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

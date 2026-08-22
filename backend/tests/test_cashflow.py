@@ -21,7 +21,7 @@ def test_retail_model_artifact_is_auditable() -> None:
     assert len(model["limitations"]) == 3
 
 
-def test_cashflow_uses_dataset_fallback_then_tenant_history() -> None:
+def test_cashflow_uses_only_tenant_financials() -> None:
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -66,7 +66,8 @@ def test_cashflow_uses_dataset_fallback_then_tenant_history() -> None:
             demo_response = second_client.get("/api/cashflow?history_days=30&forecast_days=7")
             assert demo_response.status_code == 200
             demo = demo_response.json()
-            assert demo["data_source"] == "uci_online_retail_ii_demo"
+            assert demo["data_source"] == "workspace_financials"
+            assert demo["summary"]["cash_available"] == 0
             assert len(demo["points"]) == 37
 
             now = datetime.now(timezone.utc)
@@ -89,7 +90,7 @@ def test_cashflow_uses_dataset_fallback_then_tenant_history() -> None:
             blended_response = first_client.get("/api/cashflow?history_days=30&forecast_days=7")
             assert blended_response.status_code == 200
             blended = blended_response.json()
-            assert blended["data_source"] == "razorpay_plus_dataset"
+            assert blended["data_source"] == "workspace_financials"
             assert blended["model"]["tenant_history_days"] == 1
             assert blended["points"][29]["inflow"] == 2500
 
@@ -113,7 +114,7 @@ def test_cashflow_uses_dataset_fallback_then_tenant_history() -> None:
             tenant_response = first_client.get("/api/cashflow?history_days=30&forecast_days=7")
             assert tenant_response.status_code == 200
             tenant = tenant_response.json()
-            assert tenant["data_source"] == "razorpay_history"
+            assert tenant["data_source"] == "workspace_financials"
             assert tenant["model"]["tenant_history_days"] == 14
             assert len(tenant["points"]) == 37
             assert all(point["actual"] is not None for point in tenant["points"][:30])

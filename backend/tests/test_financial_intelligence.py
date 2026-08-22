@@ -35,9 +35,13 @@ def test_profile_expenses_summary_scenario_and_tenant_isolation() -> None:
         with TestClient(app) as owner, TestClient(app) as stranger:
             owner.post("/api/auth/signup", headers=headers, json={"full_name": "Owner", "business_name": "Alpha", "email": "alpha@example.com", "password": "correct horse battery staple"})
             stranger.post("/api/auth/signup", headers=headers, json={"full_name": "Other", "business_name": "Beta", "email": "beta@example.com", "password": "another correct battery staple"})
-            profile = owner.put("/api/v1/settings/business-profile", headers=headers, json={"industry": "Retail", "website": "https://alpha.example", "current_cash": 500000, "monthly_fixed_expenses": 100000, "minimum_reserve": 150000, "target_runway_months": 9, "risk_tolerance": "conservative"})
+            profile = owner.put("/api/v1/settings/business-profile", headers=headers, json={"industry": "Retail", "website": "https://alpha.example", "current_cash": 500000, "monthly_fixed_expenses": 100000, "minimum_reserve": 150000, "target_runway_months": 9, "risk_tolerance": "conservative", "ai_control_mode": "autopilot", "notification_preferences": {"Cash flow risks": False}, "scenario_preferences": {"revenue": 18, "monthly": 75000}})
             assert profile.status_code == 200
             assert profile.json()["current_cash"] == 500000
+            assert profile.json()["ai_control_mode"] == "autopilot"
+            assert profile.json()["notification_preferences"]["Cash flow risks"] is False
+            assert profile.json()["scenario_preferences"]["monthly"] == 75000
+            assert stranger.get("/api/v1/settings/business-profile").json()["scenario_preferences"] == {}
             expense = owner.post("/api/v1/expenses", headers=headers, json={"category": "Payroll", "amount": 100000, "expense_type": "payroll", "recurring": True, "expense_date": date.today().isoformat()})
             assert expense.status_code == 201
             assert owner.get("/api/v1/expenses").json()["total"] == 1

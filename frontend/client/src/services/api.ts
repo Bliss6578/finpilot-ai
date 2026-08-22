@@ -123,7 +123,7 @@ export type CashflowResponse = {
   as_of: string;
   currency: "INR";
   mode: "test" | "live";
-  data_source: "razorpay_history" | "razorpay_plus_dataset" | "uci_online_retail_ii_demo";
+  data_source: "workspace_financials";
   summary: {
     cash_available: number;
     forecast_closing_balance: number;
@@ -202,7 +202,8 @@ export type ScenarioResult = {
   disclaimer: string;
 };
 export type FinancialAlert = { id: string; type: string; severity: "critical" | "warning" | "info"; title: string; description: string; metric_value: number | null; baseline_value: number | null; status: string; evidence: Record<string, unknown>; created_at: string };
-export type BusinessProfile = { name: string; currency: string; industry: string | null; website: string | null; current_cash: number | null; monthly_budget: number | null; monthly_fixed_expenses: number | null; minimum_reserve: number; target_runway_months: number; target_growth_rate: number | null; risk_tolerance: "conservative" | "moderate" | "aggressive" };
+export type ScenarioPreferences = { revenue?: number; expense?: number; monthly?: number; one_time?: number; hires?: number; salary?: number };
+export type BusinessProfile = { name: string; currency: string; industry: string | null; website: string | null; current_cash: number | null; monthly_budget: number | null; monthly_fixed_expenses: number | null; minimum_reserve: number; target_runway_months: number; target_growth_rate: number | null; risk_tolerance: "conservative" | "moderate" | "aggressive"; ai_control_mode: "observer" | "advisor" | "autopilot"; notification_preferences: Record<string, boolean>; scenario_preferences: ScenarioPreferences };
 export type ExpenseRecord = { id: string; category: string; description: string | null; amount: number; expense_type: string; recurring: boolean; expense_date: string };
 export async function fetchDashboard() {
   return (await api.get<DashboardResponse>("/api/dashboard")).data;

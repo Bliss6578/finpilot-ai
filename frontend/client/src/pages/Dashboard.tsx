@@ -119,14 +119,14 @@ export default function Dashboard() {
           <div>
             <SectionLabel>Financial health</SectionLabel>
             <h2>{intelligence?.health.status ?? "Calculating condition"}</h2>
-            <p>{cashflow?.data_source === "razorpay_history" ? "Forecast is personalized from workspace history." : cashflow?.data_source === "razorpay_plus_dataset" ? "Current Razorpay activity is blended with the retail model until enough history is available." : "Forecast uses the isolated retail dataset prior."}</p>
+            <p>Forecast uses only this workspace’s Razorpay activity, saved cash policy and recorded expenses.</p>
             <p className="health-improved">Cash-flow model is active</p>
           </div>
         </div>
         <div className="health-right">
           <div className="health-right-head">
             <h3>What shapes your score</h3>
-            <span>{cashflow ? "Dataset model active" : "Loading forecast evidence"}</span>
+            <span>{cashflow ? "Workspace evidence active" : "Loading forecast evidence"}</span>
           </div>
           <div className="health-metrics">
             {Object.entries(intelligence?.health.components ?? {}).map(([label, value]) => (
@@ -174,7 +174,7 @@ export default function Dashboard() {
             title={cashflow?.summary.risk_level === "low" ? "Cash reserve protected" : "Cash flow warning"}
             action={<Link href="/cash-flow">View forecast</Link>}
           >
-            {cashflow ? `${cashflow.data_source === "razorpay_history" ? "Workspace" : cashflow.data_source === "razorpay_plus_dataset" ? "Razorpay + dataset" : "Dataset-backed demo"} forecast closes at ${currency(cashflow.summary.forecast_closing_balance)}.` : "FinPilot is loading the dataset-backed forecast."}
+            {cashflow ? `This workspace’s forecast closes at ${currency(cashflow.summary.forecast_closing_balance)}.` : "FinPilot is loading the workspace forecast."}
           </InsightCard>
           <InsightCard
             tone="warning"

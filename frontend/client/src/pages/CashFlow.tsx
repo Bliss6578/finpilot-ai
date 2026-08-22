@@ -17,7 +17,7 @@ export default function CashFlow() {
     try {
       setData(await fetchCashflow(90, 90));
     } catch {
-      setError("FinPilot could not load the cash-flow model. Confirm the backend deployment is current, then try again.");
+      setError("FinPilot could not load this workspace's cash flow. Confirm the backend deployment is current, then try again.");
     } finally {
       setLoading(false);
     }
@@ -28,7 +28,7 @@ export default function CashFlow() {
   }, []);
 
   if (loading && !data) {
-    return <div className="auth-loading"><span className="auth-loading-mark">✦</span> Training the money timeline…</div>;
+    return <div className="auth-loading"><span className="auth-loading-mark">✦</span> Loading this workspace’s money timeline…</div>;
   }
 
   if (!data) {
@@ -38,11 +38,7 @@ export default function CashFlow() {
   const { summary, drivers } = data;
   const riskTone = summary.risk_level === "low" ? "good" : summary.risk_level === "high" ? "critical" : "medium";
   const riskDate = summary.risk_level === "low" ? undefined : summary.lowest_balance_date;
-  const modelSource = data.data_source === "razorpay_history"
-    ? `Personalized from ${data.model.tenant_history_days} days of this workspace's Razorpay history.`
-    : data.data_source === "razorpay_plus_dataset"
-      ? `Showing this workspace's ${data.model.tenant_history_days} active Razorpay day${data.model.tenant_history_days === 1 ? "" : "s"}; the retail model fills missing history until ${data.model.minimum_tenant_history_days} active days are available.`
-      : `Dataset-backed demo prior trained on ${data.model.trained_on}; connect and sync Razorpay to overlay current workspace activity.`;
+  const modelSource = `${data.model.tenant_history_days} active Razorpay day${data.model.tenant_history_days === 1 ? "" : "s"} plus this client's saved cash policy and expense ledger. No training-dataset values are shown as client cash.`;
   const lowestDate = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(summary.lowest_balance_date));
 
   return <>
@@ -54,7 +50,7 @@ export default function CashFlow() {
     />
     {error && <div className="panel api-error"><strong>Showing the last successful forecast</strong><span>{error}</span></div>}
     <section className="cashflow-metrics">
-      <ForecastStat label="Modeled cash position" value={currency(summary.cash_available)} note={`Calculated through ${data.as_of}`} primary />
+      <ForecastStat label="Saved cash position" value={currency(summary.cash_available)} note={`Calculated through ${data.as_of}`} primary />
       <ForecastStat label="30-day forecast" value={currency(summary.forecast_closing_balance)} note="Expected closing balance" />
       <ForecastStat label="Lowest balance" value={currency(summary.lowest_balance)} note={`Expected ${lowestDate}`} />
       <Panel className="forecast-stat"><SectionLabel>Risk level</SectionLabel><span className="stat-value"><StatusPill status={riskTone} /></span><p>Safe reserve {currency(summary.safe_reserve)}</p></Panel>
@@ -66,29 +62,29 @@ export default function CashFlow() {
       <Panel className="explanation-panel">
         <SectionLabel>Forecast drivers</SectionLabel>
         <h2>Why is your balance changing?</h2>
-        <p>The model combines learned retail seasonality with transparent cash-flow assumptions.</p>
+        <p>This forecast uses only this workspace’s observed Razorpay activity, recorded expenses and saved cash policy.</p>
         <div className="explanation-cols">
           <div>
             <div className="flow-list-title">Expected outflows · next 30 days</div>
-            <Flow label="Total modeled outflow" value={currency(drivers.forecast_outflow)} kind="out" />
-            <Flow label="Variable operating costs" value={`${(drivers.variable_cost_ratio * 100).toFixed(0)}% of sales`} kind="out" />
-            <Flow label="Returns learned from dataset" value={`${(drivers.return_rate * 100).toFixed(1)}%`} kind="out" />
+            <Flow label="Expected outflow" value={currency(drivers.forecast_outflow)} kind="out" />
+            <Flow label="Observed refunds" value={`${(drivers.return_rate * 100).toFixed(1)}% of receipts`} kind="out" />
+            <Flow label="Observed payment costs" value={`${(drivers.payment_fee_ratio * 100).toFixed(1)}% of receipts`} kind="out" />
             <Flow label="Fixed operating cost" value={`${currency(drivers.fixed_daily_opex)} / day`} kind="out" />
           </div>
           <div>
             <div className="flow-list-title">Expected inflows</div>
-            <Flow label="Modeled sales receipts" value={currency(drivers.forecast_inflow)} kind="in" />
-            <Flow label="Model" value={data.model.name} kind="in" />
-            <Flow label="Source period" value={`${data.model.training_period[0]} – ${data.model.training_period[1]}`} kind="in" />
+            <Flow label="Expected Razorpay receipts" value={currency(drivers.forecast_inflow)} kind="in" />
+            <Flow label="Data owner" value="This workspace" kind="in" />
+            <Flow label="Evidence period" value={`${data.model.training_period[0]} – ${data.model.training_period[1]}`} kind="in" />
           </div>
         </div>
       </Panel>
       <Panel className="risk-card">
         <div className="risk-title"><CircleAlert /><SectionLabel>Cash-flow evidence</SectionLabel></div>
         <h2>{summary.risk_level === "low" ? "Reserve stays protected" : `Lowest point ${lowestDate}`}</h2>
-        <p>{data.data_source === "razorpay_history" ? "The sales baseline comes from this workspace. Expense assumptions remain modeled until expense tracking is connected." : data.data_source === "razorpay_plus_dataset" ? "Synced Razorpay activity is shown immediately. Dataset seasonality fills days without enough workspace history." : "This is an isolated hackathon demo forecast. It does not claim that the dataset contains real bank balances or expenses."}</p>
+        <p>{data.model.tenant_history_days < data.model.minimum_tenant_history_days ? "Confidence is limited because this client has sparse payment history. FinPilot will not invent missing business activity." : "The baseline is calculated from this workspace’s own payment history and financial settings."}</p>
         <div className="risk-stat"><span>Projected low</span><strong>{currency(summary.lowest_balance)}</strong></div>
-        <div className="risk-stat"><span>Data source</span><strong>{data.data_source === "razorpay_history" ? "Razorpay + model" : data.data_source === "razorpay_plus_dataset" ? "Current Razorpay + dataset" : "Retail dataset demo"}</strong></div>
+        <div className="risk-stat"><span>Data source</span><strong>Client Razorpay + saved policy</strong></div>
         <div className="risk-actions"><Link href="/ai-cfo" className="button-secondary"><Sparkles />Ask AI why</Link><Link href="/scenario-lab" className="button-primary"><FlaskConical />Run scenario</Link></div>
       </Panel>
     </section>
