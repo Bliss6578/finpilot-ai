@@ -93,14 +93,14 @@ export default function AICFO() {
             <div className="message-avatar"><Sparkles /></div>
             <div className="message-copy"><div className="answer-heading"><i />FinPilot is analysing this workspace</div><span className="id-code">Comparing payments, refunds, settlements and forecast evidence…</span></div>
           </div>}
-          {!thinking && <div className="suggested-list follow-up-queries">
+          {!thinking && context?.razorpay_connected !== false && <div className="suggested-list follow-up-queries">
             {questions.map(question => <button className="suggested-question" key={question} onClick={() => void ask(question)}>{question}</button>)}
           </div>}
           {error && <div className="api-error"><strong>Analysis unavailable</strong><span>{error}</span></div>}
           <div ref={endRef} />
         </div>
         <form className="ai-input-area" onSubmit={submit}>
-          <div className="ai-input"><input value={draft} onChange={event => setDraft(event.target.value)} placeholder="Ask FinPilot about your finances…" maxLength={600} /><button aria-label="Send question" disabled={thinking || !draft.trim()}><Send /></button></div>
+          <div className="ai-input"><input value={draft} onChange={event => setDraft(event.target.value)} placeholder={context?.razorpay_connected === false ? "Connect Razorpay in Settings to continue" : "Ask FinPilot about your finances…"} maxLength={600} disabled={context?.razorpay_connected === false} /><button aria-label="Send question" disabled={thinking || !draft.trim() || context?.razorpay_connected === false}><Send /></button></div>
           <small>Answers use only this workspace. Payment proceeds are not described as accounting profit without expense data.</small>
         </form>
       </Panel>
@@ -127,11 +127,12 @@ function ChatMessage({ message, onAction }: { message: Message; onAction: (path:
     <div className="message-avatar"><Sparkles /></div>
     <div className="message-copy">
       <div className="answer-heading"><i />FinPilot analysis · {response.evidence.mode} mode</div>
+      {response.llm && <div className="id-code">{response.llm.fallback ? "Verified FinPilot fallback" : `Grounded AI · ${response.llm.model}`}</div>}
       <p>{response.answer}</p>
       {!!response.tools_used?.length && <div className="id-code">{response.tools_used.map(tool => <span key={tool} style={{ marginRight: 14 }}><Check size={12} /> {tool.replaceAll("_", " ")}</span>)}</div>}
       <div className="answer-metrics">{response.metrics.map(metric => <div className="answer-metric" key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.detail}</small></div>)}</div>
       <div className="recommendation"><span>Evidence-backed recommendation</span><p>{response.recommendation}</p></div>
-      {!!response.actions?.length && <div className="suggested-list">{response.actions.map(action => <button className="button-secondary" key={action.action} onClick={() => onAction(action.action.includes("scenario") ? "/scenario-lab" : action.action.includes("cash") ? "/cash-flow" : "/transactions")}>{action.label}</button>)}</div>}
+      {!!response.actions?.length && <div className="suggested-list">{response.actions.map(action => <button className="button-secondary" key={action.action} onClick={() => onAction(action.action.includes("settings") ? "/settings" : action.action.includes("scenario") ? "/scenario-lab" : action.action.includes("cash") ? "/cash-flow" : "/transactions")}>{action.label}</button>)}</div>}
       <div className="id-code">Sources · {response.evidence.sources.join(" · ")}</div>
     </div>
   </div>;

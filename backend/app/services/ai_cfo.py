@@ -302,4 +302,14 @@ def answer_cfo_question(db: Session, business_id: str, mode: str, question: str)
             "cashflow_source": cashflow["data_source"],
             "sources": ["Razorpay payments", "Razorpay refunds", "Razorpay settlements", "FinPilot cash-flow model"],
         },
+        "_llm_context": {
+            "currency": intelligence["currency"],
+            "current_period": intelligence["current"],
+            "previous_period": intelligence["previous"],
+            "period_changes": intelligence["changes"],
+            "cash": intelligence["cash"],
+            "financial_health": intelligence["health"],
+            "data_completeness": intelligence["data_completeness"],
+            "forecast_summary": cashflow["summary"],
+        },
     }

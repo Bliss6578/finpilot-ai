@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.api.routes import financial_mode
 from app.auth import AuthContext, require_auth, require_frontend_request
+from app.config import Settings, get_settings
 from app.database import get_db
-from app.models import CFOConversation, CFOMessage
+from app.models import CFOConversation, CFOMessage, RazorpayConnection
 from app.services.ai_cfo import answer_cfo_question, build_cfo_context
 from app.services.financial_engine import financial_summary
+from app.services.llm_cfo import enhance_cfo_answer
 
 
 router = APIRouter(prefix="/api/ai-cfo", tags=["AI CFO"])
@@ -30,7 +32,36 @@ class CFOChatRequest(BaseModel):
     conversation_id: Optional[str] = None
 
 
-def _answer_and_store(db: Session, context: AuthContext, question: str, conversation_id: Optional[str]) -> dict[str, Any]:
+def _razorpay_connection(db: Session, business_id: str) -> RazorpayConnection | None:
+    return db.scalar(select(RazorpayConnection).where(
+        RazorpayConnection.business_id == business_id,
+        RazorpayConnection.status == "connected",
+    ))
+
+
+def _connection_required_result(mode: str) -> dict[str, Any]:
+    return {
+        "answer": "Please connect your Razorpay to continue.",
+        "recommendation": "Open Settings and connect this workspace's Razorpay account.",
+        "classification": "fact",
+        "metrics": [],
+        "insights": [],
+        "actions": [{"label": "Connect Razorpay", "action": "open_settings"}],
+        "tools_used": ["check_razorpay_connection"],
+        "engine": "finpilot_access_policy",
+        "suggestions": [],
+        "evidence": {
+            "tenant_scope": "authenticated_workspace",
+            "mode": mode,
+            "period_days": 30,
+            "latest_data_at": None,
+            "cashflow_source": "workspace_financial_records",
+            "sources": [],
+        },
+    }
+
+
+def _answer_and_store(db: Session, context: AuthContext, question: str, conversation_id: Optional[str], settings: Settings) -> dict[str, Any]:
     conversation = None
     if conversation_id:
         conversation = db.scalar(select(CFOConversation).where(
@@ -44,9 +75,27 @@ def _answer_and_store(db: Session, context: AuthContext, question: str, conversa
         conversation = CFOConversation(id=str(uuid4()), business_id=context.business.id, title=question[:80])
         db.add(conversation)
         db.flush()
+    prior_messages = list(db.scalars(
+        select(CFOMessage).where(CFOMessage.conversation_id == conversation.id).order_by(CFOMessage.created_at.desc()).limit(6)
+    ).all())
+    history = [{"role": item.role, "content": item.content} for item in reversed(prior_messages)]
     db.add(CFOMessage(id=str(uuid4()), conversation_id=conversation.id, role="user", content=question, structured_content={}))
+    connection = _razorpay_connection(db, context.business.id)
+    if connection is None:
+        result = _connection_required_result("test")
+        result["conversation_id"] = conversation.id
+        db.add(CFOMessage(id=str(uuid4()), conversation_id=conversation.id, role="assistant", content=result["answer"], structured_content=result))
+        db.commit()
+        return result
     mode = financial_mode(db, context.business.id)
     result = answer_cfo_question(db, context.business.id, mode, question)
+    result = enhance_cfo_answer(
+        settings=settings,
+        business_id=context.business.id,
+        question=question,
+        verified_result=result,
+        history=history,
+    )
     result["conversation_id"] = conversation.id
     db.add(CFOMessage(id=str(uuid4()), conversation_id=conversation.id, role="assistant", content=result["answer"], structured_content=result))
     db.commit()
@@ -58,6 +107,21 @@ def cfo_context(
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    connection = _razorpay_connection(db, context.business.id)
+    if connection is None:
+        return {
+            "as_of": None,
+            "mode": "test",
+            "razorpay_connected": False,
+            "latest_data_at": None,
+            "payment_attempts": 0,
+            "suggestions": [],
+            "focus": {
+                "title": "Connect Razorpay",
+                "description": "Connect this workspace's Razorpay account to activate the AI CFO.",
+                "cashflow_source": "workspace_financial_records",
+            },
+        }
     mode = financial_mode(db, context.business.id)
     result = build_cfo_context(db, context.business.id, mode)
     current = result["current"]
@@ -65,6 +129,7 @@ def cfo_context(
     return {
         "as_of": result["as_of"],
         "mode": mode,
+        "razorpay_connected": True,
         "latest_data_at": result["latest_data_at"],
         "payment_attempts": current.attempts,
         "suggestions": result["suggestions"],
@@ -81,9 +146,10 @@ def ask_cfo(
     payload: CFOQuestion,
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
     _: None = Depends(require_frontend_request),
 ) -> dict[str, Any]:
-    return _answer_and_store(db, context, payload.question.strip(), payload.conversation_id)
+    return _answer_and_store(db, context, payload.question.strip(), payload.conversation_id, settings)
 
 
 @v1_router.post("/chat")
@@ -91,9 +157,10 @@ def cfo_chat(
     payload: CFOChatRequest,
     context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
     _: None = Depends(require_frontend_request),
 ) -> dict[str, Any]:
-    return _answer_and_store(db, context, payload.message.strip(), payload.conversation_id)
+    return _answer_and_store(db, context, payload.message.strip(), payload.conversation_id, settings)
 
 
 @v1_router.get("/briefing")

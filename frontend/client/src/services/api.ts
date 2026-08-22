@@ -151,8 +151,9 @@ export type CashflowResponse = {
   points: CashflowPoint[];
 };
 export type AICFOContext = {
-  as_of: string;
+  as_of: string | null;
   mode: "test" | "live";
+  razorpay_connected: boolean;
   latest_data_at: string | null;
   payment_attempts: number;
   suggestions: string[];
@@ -172,6 +173,7 @@ export type AICFOResponse = {
   actions: { label: string; action: string }[];
   tools_used: string[];
   engine: string;
+  llm?: { provider: "openai"; model: string; grounded: boolean; fallback: boolean };
   suggestions: string[];
   evidence: {
     tenant_scope: "authenticated_workspace";

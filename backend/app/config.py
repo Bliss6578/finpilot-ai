@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     email_from: str = "FinPilot <onboarding@resend.dev>"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6"
+    openai_timeout_seconds: float = 20.0
+    openai_max_output_tokens: int = 900
     demo_mode: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

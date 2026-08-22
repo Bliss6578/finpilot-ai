@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base, get_db
 from app.main import app
-from app.models import Refund, Settlement, Transaction
+from app.models import RazorpayConnection, Refund, Settlement, Transaction
 
 
 def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
@@ -52,10 +52,17 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
                 },
             )
             business_id = signup.json()["business"]["id"]
+            other_business_id = other_owner.get("/api/auth/me").json()["business"]["id"]
+            disconnected = owner.post(
+                "/api/ai-cfo/ask", headers=headers, json={"question": "What is my revenue?"}
+            ).json()
+            assert disconnected["answer"] == "Please connect your Razorpay to continue."
             now = datetime.now(timezone.utc)
             with Session(engine) as db:
                 db.add_all(
                     [
+                        RazorpayConnection(business_id=business_id, status="connected", mode="test"),
+                        RazorpayConnection(business_id=other_business_id, status="connected", mode="test"),
                         Transaction(
                             business_id=business_id,
                             mode="test",
@@ -147,6 +154,11 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
                 f"/api/v1/cfo/conversations/{body['conversation_id']}"
             )
             assert other_conversation.status_code == 404
+
+            non_finance = owner.post(
+                "/api/ai-cfo/ask", headers=headers, json={"question": "Write me a birthday poem"}
+            ).json()
+            assert non_finance["answer"] == "I can't answer this."
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(engine)
