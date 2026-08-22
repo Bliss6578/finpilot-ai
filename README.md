@@ -46,6 +46,20 @@ The dataset teaches sales seasonality and cancellation behavior. It does not con
 
 Source: https://archive.ics.uci.edu/dataset/502/online+retail+ii
 
+## FinQA symbolic reasoning router
+
+FinPilot can learn finance-question operation patterns from FinQA without using
+the source reports as client evidence. Build the compact artifact locally:
+
+```bash
+cd backend
+python scripts/prepare_finqa_reasoning.py /path/to/archive.zip
+```
+
+The generated artifact retains only normalized questions and symbolic operation
+names. All client amounts continue to come from that authenticated workspace's
+database and deterministic financial tools.
+
 ## Grounded AI CFO
 
 `POST /api/v1/cfo/chat` calculates answers from the authenticated business and its active Test/Live mode. Conversations and structured answers persist per workspace. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, recorded expenses, cash policy, and the FinPilot cash-flow model. Responses identify the deterministic tools used, evidence sources, classifications, recommended actions, and contextual follow-up questions.

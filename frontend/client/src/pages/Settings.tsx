@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Link2, LogOut, MailCheck, Plus, RefreshCw, ShieldCheck, Trash2, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
+import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 import {
   fetchRazorpayStatus,
   beginRazorpayOAuth,
@@ -304,7 +305,7 @@ export default function Settings() {
           </Panel>
           <Panel className="settings-panel">
             <SectionLabel>Data source</SectionLabel>
-            <h2>Razorpay connection</h2>
+            <h2><RazorpayOfficialLink>Razorpay connection</RazorpayOfficialLink></h2>
             <p>
               FinPilot reads financial signals through your connected payment
               data.
@@ -312,7 +313,7 @@ export default function Settings() {
             <div className="connection-card">
               <div className="connection-mark">R</div>
               <div>
-                <strong>Razorpay</strong>
+                <strong><RazorpayOfficialLink compact>Razorpay</RazorpayOfficialLink></strong>
                 <span>
                   <Check />
                   {connection?.connected

@@ -4,6 +4,7 @@ import { Check, Database, RefreshCw, Send, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import { Panel, SectionLabel } from "@/components/finpilot-ui";
 import { askAICFO, fetchAICFOContext, type AICFOContext, type AICFOResponse } from "@/services/api";
+import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 
 type Message =
   | { role: "user"; text: string }
@@ -107,7 +108,7 @@ export default function AICFO() {
       <aside className="ai-rail">
         <Panel className="ai-rail-panel">
           <SectionLabel>Verified data sources</SectionLabel><h3>Analysis is grounded in this business.</h3>
-          <div className="ai-data-source"><div className="source-icon"><Database /></div><div><strong>Razorpay · {context?.mode ?? "test"} mode</strong><span>Payments, settlements and refunds</span></div></div>
+          <div className="ai-data-source"><div className="source-icon"><Database /></div><div><strong><RazorpayOfficialLink compact>Razorpay · {context?.mode ?? "test"} mode</RazorpayOfficialLink></strong><span>Payments, settlements and refunds</span></div></div>
           <div className="ai-data-source"><div className="source-icon"><Sparkles /></div><div><strong>FinPilot forecast</strong><span>{context?.focus.cashflow_source.replaceAll("_", " ") ?? "Loading model source"}</span></div></div>
         </Panel>
         <Panel className="ai-rail-panel">
@@ -128,6 +129,7 @@ function ChatMessage({ message, onAction }: { message: Message; onAction: (path:
     <div className="message-copy">
       <div className="answer-heading"><i />FinPilot analysis · {response.evidence.mode} mode</div>
       {response.llm && <div className="id-code">{response.llm.fallback ? "Verified FinPilot fallback" : `Grounded AI · ${response.llm.model}`}</div>}
+      {response.agent && <div className="agent-trace"><span>Native agent</span><strong>{response.agent.plan.intent.replaceAll("_", " ")}</strong><small>{Math.round(response.agent.confidence * 100)}% evidence confidence · private workspace execution{response.agent.reasoning_reference ? ` · FinQA operations: ${response.agent.reasoning_reference.operations.join(" → ")}` : ""}</small></div>}
       <p>{response.answer}</p>
       {!!response.tools_used?.length && <div className="id-code">{response.tools_used.map(tool => <span key={tool} style={{ marginRight: 14 }}><Check size={12} /> {tool.replaceAll("_", " ")}</span>)}</div>}
       <div className="answer-metrics">{response.metrics.map(metric => <div className="answer-metric" key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.detail}</small></div>)}</div>

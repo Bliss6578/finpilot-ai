@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -14,6 +14,8 @@ import {
 import { Link } from "wouter";
 import { CashFlowChart } from "@/components/finance-charts";
 import "./landing.css";
+import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
+import { api } from "@/services/api";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const stages = [
@@ -94,6 +96,13 @@ const capabilities = [
 export default function Home() {
   const reduced = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    // Wake the API while visitors read the landing page so authentication is
+    // normally ready by the time they choose Sign in or Get started.
+    void api.get("/api/health", { timeout: 75_000 }).catch(() => undefined);
+  }, []);
+
   return (
     <div className="landing">
       <header className="landing-nav">
@@ -158,7 +167,7 @@ export default function Home() {
           </div>
           <div className="hero-kicker">
             <span>AI FINANCE CONTROLLER</span>
-            <span>RAZORPAY CONNECTED · INDIA</span>
+            <span><RazorpayOfficialLink compact>RAZORPAY CONNECTED · INDIA</RazorpayOfficialLink></span>
           </div>
           <h1>
             {["Finance", "that thinks", "ahead."].map((line, index) => (

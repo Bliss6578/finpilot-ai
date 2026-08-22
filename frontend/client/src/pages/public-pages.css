@@ -14,6 +14,20 @@
   font-family: "Inter", sans-serif;
 }
 
+/* Intelligence Network public/legal pages */
+.public-site { --paper:#030b1b; --paper-light:#071a38; --ink:#eaf6ff; --muted:#829bb8; --brown:#08285a; --brown-dark:#020713; background:radial-gradient(circle at 80% 8%,rgba(25,135,255,.2),transparent 28%),#030b1b; color:var(--ink); }
+.public-nav { background:rgba(3,11,27,.86); border-bottom:1px solid rgba(80,172,255,.15); backdrop-filter:blur(22px); }
+.public-logo span,.public-nav-cta { background:linear-gradient(145deg,#39bdff,#176dff); color:#fff; }
+.public-hero { background:repeating-radial-gradient(ellipse at 80% 28%,transparent 0 36px,rgba(65,181,255,.07) 37px 38px),radial-gradient(circle at 76% 22%,rgba(19,126,255,.36),transparent 30%),linear-gradient(135deg,#04122f,#07336c 62%,#020918); }
+.public-hero-mark { background:#0c3978; color:#55c9ff; box-shadow:0 0 36px rgba(43,163,255,.26); }
+.public-feature-grid section,.policy-highlight { border-color:rgba(82,171,255,.19); background:linear-gradient(145deg,rgba(8,31,67,.88),rgba(4,17,39,.88)); }
+.public-feature-grid section>svg,.policy-section a { color:#49c4ff; }
+.policy-section { border-color:rgba(82,171,255,.16); }
+.policy-section p,.public-feature-grid p,.policy-updated { color:#829bb8; }
+.public-callout,.contact-card,.pricing-card { background:linear-gradient(135deg,#08285a,#04152f); border:1px solid rgba(76,174,255,.2); }
+.contact-icon,.contact-card>a,.pricing-card>a { background:#0d438b; color:#eaf7ff; }
+.public-footer { background:#020713; border-top:1px solid rgba(70,169,255,.16); }
+
 .public-nav {
   position: relative;
   z-index: 10;
@@ -132,3 +146,17 @@
   .public-footer { grid-template-columns: 1fr; gap: 42px; padding: 58px 24px 32px; }
   .public-footer-links { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Final public-page color cascade. */
+.public-site { --paper:#030b1b; --paper-light:#071a38; --ink:#eaf6ff; --muted:#829bb8; --brown:#08285a; --brown-dark:#020713; background:radial-gradient(circle at 80% 8%,rgba(25,135,255,.2),transparent 28%),#030b1b; color:var(--ink); }
+.public-nav { background:rgba(3,11,27,.86); border-bottom:1px solid rgba(80,172,255,.15); backdrop-filter:blur(22px); }
+.public-logo span,.public-nav-cta { background:linear-gradient(145deg,#39bdff,#176dff); color:#fff; }
+.public-hero { background:repeating-radial-gradient(ellipse at 80% 28%,transparent 0 36px,rgba(65,181,255,.07) 37px 38px),radial-gradient(circle at 76% 22%,rgba(19,126,255,.36),transparent 30%),linear-gradient(135deg,#04122f,#07336c 62%,#020918); }
+.public-hero-mark { background:#0c3978; color:#55c9ff; }
+.public-feature-grid section,.policy-highlight { border-color:rgba(82,171,255,.19); background:linear-gradient(145deg,rgba(8,31,67,.88),rgba(4,17,39,.88)); }
+.public-feature-grid section>svg,.policy-section a { color:#49c4ff; }
+.policy-section { border-color:rgba(82,171,255,.16); }
+.policy-section p,.public-feature-grid p,.policy-updated { color:#829bb8; }
+.public-callout,.contact-card,.pricing-card { background:linear-gradient(135deg,#08285a,#04152f); border:1px solid rgba(76,174,255,.2); }
+.contact-icon,.contact-card>a,.pricing-card>a { background:#0d438b; color:#eaf7ff; }
+.public-footer { background:#020713; border-top:1px solid rgba(70,169,255,.16); }

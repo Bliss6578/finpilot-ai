@@ -118,7 +118,6 @@ export function ContactPage() {
         <section><DatabaseZap /><h2>Data request</h2><p>Use the subject “Privacy request” to ask for access, correction, export, or deletion.</p></section>
         <section><Clock3 /><h2>Private beta</h2><p>Support availability may be limited while the product remains in private beta.</p></section>
       </div>
-      <p className="contact-warning"><strong>Before Razorpay review:</strong> make sure this mailbox exists and is monitored, or replace it with your verified business support email.</p>
     </PublicShell>
   );
 }

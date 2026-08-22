@@ -42,6 +42,240 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* FinPilot Intelligence Network — final cross-product theme layer. */
+:root {
+  --signal: #36a8ff;
+  --ink: #eef7ff;
+  --muted-ink: #8ea6c4;
+  --canvas: #020817;
+  --line: rgba(94, 178, 255, 0.18);
+  --card: rgba(7, 24, 53, 0.76);
+  --background: #020817;
+  --foreground: #eef7ff;
+  --primary: #168bff;
+  --primary-foreground: #ffffff;
+  --border: rgba(94, 178, 255, 0.18);
+  --input: rgba(103, 181, 255, 0.2);
+  --ring: #38a9ff;
+}
+
+html { color-scheme: dark; }
+body {
+  background:
+    radial-gradient(circle at 78% 14%, rgba(0, 112, 255, .22), transparent 30%),
+    radial-gradient(circle at 15% 78%, rgba(0, 197, 255, .1), transparent 32%),
+    linear-gradient(145deg, #020713, #03132d 52%, #020817);
+  color: var(--ink);
+}
+
+.app-shell,
+.workspace {
+  background: transparent;
+  color: var(--ink);
+}
+
+.workspace::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0 0 0 270px;
+  pointer-events: none;
+  background:
+    repeating-radial-gradient(ellipse at 78% 12%, transparent 0 34px, rgba(56, 169, 255, .055) 35px 36px),
+    linear-gradient(118deg, transparent 45%, rgba(35, 154, 255, .055) 50%, transparent 56%);
+  animation: intelligence-current 18s ease-in-out infinite alternate;
+}
+
+@keyframes intelligence-current {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1.02); opacity: .72; }
+  to { transform: translate3d(2%, 1.5%, 0) scale(1.06); opacity: 1; }
+}
+
+.sidebar {
+  border-color: rgba(83, 172, 255, .18);
+  background:
+    radial-gradient(circle at 20% 7%, rgba(34, 148, 255, .2), transparent 25%),
+    linear-gradient(180deg, rgba(3, 17, 42, .98), rgba(2, 8, 23, .995));
+  color: #93a9c6;
+  box-shadow: 22px 0 70px rgba(0, 0, 0, .3);
+}
+
+.brand-mark {
+  background: linear-gradient(145deg, #4ec4ff, #176eff);
+  color: white;
+  box-shadow: 0 0 35px rgba(37, 153, 255, .38), inset 0 1px rgba(255,255,255,.35);
+}
+
+.sidebar-brand strong,
+.sidebar-brand strong em { color: #f4f9ff; }
+.sidebar-brand span,
+.source-status small,
+.business-card span { color: #7289a8; }
+.sidebar-brand,
+.sidebar-footer,
+.site-return { border-color: rgba(104, 181, 255, .15); }
+.nav-item { color: #7187a5; }
+.nav-item:hover { background: rgba(41, 137, 230, .1); color: #d8edff; }
+.nav-item.active {
+  border-color: rgba(80, 184, 255, .46);
+  background: linear-gradient(100deg, rgba(20, 113, 220, .34), rgba(21, 75, 151, .17));
+  color: #f7fbff;
+  box-shadow: inset 3px 0 #39b7ff, 0 12px 30px rgba(0, 72, 170, .14);
+}
+.nav-item.active small,
+.nav-item.active svg { color: #50c2ff; }
+.nav-item b { background: #168bff; color: white; }
+.source-status i { background: #2edc8b; box-shadow: 0 0 14px rgba(46, 220, 139, .8); }
+.sidebar-logout,
+.demo-badge { border-color: rgba(106, 180, 255, .2); color: #8ca3c0; background: rgba(10, 41, 78, .22); }
+
+.topbar,
+.topbar.compact {
+  border-color: rgba(92, 169, 245, .16);
+  background: rgba(3, 15, 35, .76);
+  box-shadow: 0 14px 40px rgba(0,0,0,.18), inset 0 -1px rgba(74,163,255,.08);
+  backdrop-filter: blur(24px) saturate(140%);
+}
+.topbar-title strong,
+.product-chapter span { color: #b8cce4; }
+.product-chapter { border-color: rgba(92, 169, 245, .17); }
+.product-chapter p,
+.page-header p,
+.welcome-row p { color: #7f96b4; }
+.scroll-progress { background: linear-gradient(90deg, #176cff, #38c8ff, #786dff); box-shadow: 0 0 16px #159dff; }
+
+.page-content { color: #eaf5ff; }
+.page-header h1,
+.welcome-row h1,
+.page-header h1 span,
+.welcome-row h1 span { color: #f4f9ff; text-shadow: 0 5px 40px rgba(22, 139, 255, .17); }
+.section-label { color: #7ba8d2; }
+.section-label::before { background: #38b9ff; box-shadow: 0 0 12px rgba(56,185,255,.7); }
+
+.panel,
+.metric-card,
+.summary-card,
+.filter-bar,
+.save-bar,
+.settings-panel,
+.ai-rail-panel,
+.scenario-control-panel,
+.scenario-result-panel,
+.alert-card,
+.transactions-panel,
+.chat-surface {
+  border-color: rgba(85, 170, 255, .2);
+  background: linear-gradient(145deg, rgba(8, 28, 61, .82), rgba(4, 16, 38, .74));
+  color: #eaf5ff;
+  box-shadow: 0 20px 55px rgba(0, 5, 18, .26), inset 0 1px rgba(151, 211, 255, .08);
+  backdrop-filter: blur(20px) saturate(135%);
+}
+.panel:hover,
+.metric-card:hover { border-color: rgba(79, 185, 255, .4); box-shadow: 0 24px 60px rgba(0, 55, 135, .18), inset 0 1px rgba(151,211,255,.12); }
+
+.health-panel,
+.summary-card:first-child,
+.forecast-stat.primary,
+.ai-welcome {
+  border-color: rgba(72, 174, 255, .28);
+  background:
+    repeating-radial-gradient(circle at 82% 45%, transparent 0 35px, rgba(66, 175, 255, .075) 36px 37px),
+    linear-gradient(135deg, #071a3d, #052c62 57%, #06152f);
+  color: #f5fbff;
+  box-shadow: 0 25px 65px rgba(0, 70, 170, .22), inset 0 1px rgba(162,220,255,.14);
+}
+.health-panel p,
+.forecast-stat.primary p,
+.summary-card:first-child span,
+.ai-welcome p { color: #89a8c9; }
+.gauge-progress,
+.metric-bottom polyline { stroke: #36bdff; }
+.gauge-track { stroke: rgba(94,178,255,.16); }
+
+.ask-button,
+.button-primary,
+.ai-input button,
+.switch.on,
+.auth-submit {
+  background: linear-gradient(135deg, #168bff, #315cff);
+  color: white;
+  box-shadow: 0 12px 30px rgba(17, 112, 255, .3), inset 0 1px rgba(255,255,255,.28);
+}
+.button-secondary,
+.date-button,
+.icon-button,
+.filter-button,
+.topbar-button {
+  border-color: rgba(102, 184, 255, .22);
+  background: rgba(8, 35, 71, .66);
+  color: #b9d2eb;
+}
+input,
+textarea,
+select,
+.ai-input,
+.suggested-question {
+  border-color: rgba(94, 178, 255, .2) !important;
+  background: rgba(2, 13, 32, .72) !important;
+  color: #e9f6ff !important;
+}
+input::placeholder,
+textarea::placeholder { color: #607b9d; }
+.recommendation,
+.connection-notice,
+.api-key-connect-form,
+.webhook-setup-card { border-color: rgba(78,174,255,.2); background: rgba(13, 45, 86, .42); color: #a9c8e5; }
+.answer-metric,
+.ai-data-source { border-color: rgba(86,169,247,.16); background: rgba(4,20,44,.48); }
+.answer-metric span,
+.answer-metric small,
+.id-code { color: #7393b6; }
+.agent-trace {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 14px 0;
+  border: 1px solid rgba(65, 188, 255, .25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(5, 42, 82, .58);
+}
+.agent-trace span { color: #42c5ff; font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.agent-trace strong { color: #eef8ff; text-transform: capitalize; }
+.agent-trace small { grid-column: 1 / -1; color: #7799bd; }
+.razorpay-official-link { display: inline-flex; align-items: center; gap: 5px; color: inherit; text-decoration: none; }
+.razorpay-official-link:hover { color: #51c4ff; }
+.razorpay-official-link svg { width: 13px; height: 13px; }
+.razorpay-official-link.compact svg { width: 11px; height: 11px; }
+
+.auth-page,
+.auth-loading { background: #020817; color: #dbeeff; }
+.auth-story {
+  background: radial-gradient(circle at 74% 22%, rgba(27,138,255,.34), transparent 32%), linear-gradient(145deg, rgba(2,12,31,.96), rgba(4,43,91,.9)), url("/finpilot-header-backdrop.jpg") center / cover;
+}
+.auth-form-side { background: radial-gradient(circle at 85% 10%, rgba(30,132,255,.15), transparent 30%), #041127; }
+.auth-form-card h2,
+.auth-form-card label > span { color: #eaf6ff; }
+.auth-form-card > p,
+.auth-switch { color: #7f98b7; }
+.auth-form-card input { background: rgba(5,24,51,.78); border-color: rgba(88,170,248,.22); color: #f1f9ff; }
+.auth-switch a,
+.forgot-password-link { color: #49bdff; }
+.recovery-page { background: radial-gradient(circle at 20% 10%, rgba(28,132,255,.2), transparent 34%), linear-gradient(135deg,#020817,#062451); }
+.recovery-card { border-color: rgba(91,180,255,.2); background: rgba(4,18,42,.92); box-shadow: 0 28px 80px rgba(0,0,0,.34); }
+.recovery-card h1,
+.recovery-form label { color: #edf8ff; }
+.recovery-card > p,
+.recovery-result p { color: #849dbb; }
+
+@media (max-width: 900px) {
+  .workspace::before { inset-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace::before { animation: none; }
+}
+
 /* Multi-tenant authentication */
 .auth-page {
   min-height: 100vh;
@@ -3272,6 +3506,66 @@ body {
   background: rgba(55, 45, 39, 0.28);
   backdrop-filter: blur(4px);
 }
+
+/* Theme lock: this final layer prevents legacy warm styles from resurfacing. */
+body { background:radial-gradient(circle at 78% 14%,rgba(0,112,255,.22),transparent 30%),radial-gradient(circle at 15% 78%,rgba(0,197,255,.1),transparent 32%),linear-gradient(145deg,#020713,#03132d 52%,#020817)!important; color:#eef7ff; }
+.app-shell,.workspace,.page-content { background:transparent!important; color:#eef7ff; }
+.sidebar { border-color:rgba(83,172,255,.18)!important; background:radial-gradient(circle at 20% 7%,rgba(34,148,255,.2),transparent 25%),linear-gradient(180deg,rgba(3,17,42,.98),rgba(2,8,23,.995))!important; color:#93a9c6!important; box-shadow:22px 0 70px rgba(0,0,0,.3)!important; }
+.topbar,.topbar.compact { border-color:rgba(92,169,245,.16)!important; background:rgba(3,15,35,.84)!important; color:#b8cce4!important; }
+.nav-item { color:#7187a5!important; }
+.nav-item.active { border-color:rgba(80,184,255,.46)!important; background:linear-gradient(100deg,rgba(20,113,220,.34),rgba(21,75,151,.17))!important; color:#f7fbff!important; box-shadow:inset 3px 0 #39b7ff,0 12px 30px rgba(0,72,170,.14)!important; }
+.page-header h1,.welcome-row h1,.page-header h1 span,.welcome-row h1 span { color:#f4f9ff!important; }
+.panel,.metric-card,.summary-card,.filter-bar,.save-bar,.settings-panel,.ai-rail-panel,.scenario-control-panel,.scenario-result-panel,.alert-card,.transactions-panel,.chat-surface { border-color:rgba(85,170,255,.2)!important; background:linear-gradient(145deg,rgba(8,28,61,.88),rgba(4,16,38,.84))!important; color:#eaf5ff!important; box-shadow:0 20px 55px rgba(0,5,18,.26),inset 0 1px rgba(151,211,255,.08)!important; }
+.health-panel,.summary-card:first-child,.forecast-stat.primary,.ai-welcome { border-color:rgba(72,174,255,.28)!important; background:repeating-radial-gradient(circle at 82% 45%,transparent 0 35px,rgba(66,175,255,.075) 36px 37px),linear-gradient(135deg,#071a3d,#052c62 57%,#06152f)!important; color:#f5fbff!important; }
+.button-primary,.ask-button,.ai-input button,.switch.on { background:linear-gradient(135deg,#168bff,#315cff)!important; color:#fff!important; }
+.button-secondary,.date-button,.icon-button,.filter-button { border-color:rgba(102,184,255,.22)!important; background:rgba(8,35,71,.72)!important; color:#b9d2eb!important; }
+.route-continuation { border-color:rgba(73,177,255,.28)!important; background:radial-gradient(circle at 82% 18%,rgba(43,153,255,.22),transparent 24%),linear-gradient(145deg,rgba(5,30,67,.96),rgba(3,14,35,.96))!important; color:#dff2ff!important; }
+.transaction-drawer { border-left-color:rgba(83,172,255,.22)!important; background:rgba(3,17,40,.97)!important; color:#eaf6ff!important; }
+
+/* Final cascade: deep-blue Intelligence Network theme. */
+body { background: radial-gradient(circle at 78% 14%,rgba(0,112,255,.22),transparent 30%),radial-gradient(circle at 15% 78%,rgba(0,197,255,.1),transparent 32%),linear-gradient(145deg,#020713,#03132d 52%,#020817); color:#eef7ff; }
+.app-shell,.workspace { background:transparent; color:#eef7ff; }
+.sidebar { border-color:rgba(83,172,255,.18); background:radial-gradient(circle at 20% 7%,rgba(34,148,255,.2),transparent 25%),linear-gradient(180deg,rgba(3,17,42,.98),rgba(2,8,23,.995)); color:#93a9c6; box-shadow:22px 0 70px rgba(0,0,0,.3); }
+.brand-mark { background:linear-gradient(145deg,#4ec4ff,#176eff); color:#fff; box-shadow:0 0 35px rgba(37,153,255,.38),inset 0 1px rgba(255,255,255,.35); }
+.sidebar-brand strong,.sidebar-brand strong em { color:#f4f9ff; }
+.sidebar-brand span,.source-status small,.business-card span { color:#7289a8; }
+.sidebar-brand,.sidebar-footer,.site-return { border-color:rgba(104,181,255,.15); }
+.nav-item { color:#7187a5; }
+.nav-item:hover { background:rgba(41,137,230,.1); color:#d8edff; }
+.nav-item.active { border-color:rgba(80,184,255,.46); background:linear-gradient(100deg,rgba(20,113,220,.34),rgba(21,75,151,.17)); color:#f7fbff; box-shadow:inset 3px 0 #39b7ff,0 12px 30px rgba(0,72,170,.14); }
+.nav-item.active small,.nav-item.active svg { color:#50c2ff; }
+.nav-item b { background:#168bff; color:#fff; }
+.topbar,.topbar.compact { border-color:rgba(92,169,245,.16); background:rgba(3,15,35,.82); box-shadow:0 14px 40px rgba(0,0,0,.18),inset 0 -1px rgba(74,163,255,.08); backdrop-filter:blur(24px) saturate(140%); }
+.topbar-title strong,.product-chapter span { color:#b8cce4; }
+.product-chapter { border-color:rgba(92,169,245,.17); }
+.product-chapter p,.page-header p,.welcome-row p { color:#7f96b4; }
+.scroll-progress { background:linear-gradient(90deg,#176cff,#38c8ff,#786dff); box-shadow:0 0 16px #159dff; }
+.page-header h1,.welcome-row h1,.page-header h1 span,.welcome-row h1 span { color:#f4f9ff; text-shadow:0 5px 40px rgba(22,139,255,.17); }
+.section-label { color:#7ba8d2; }
+.section-label::before { background:#38b9ff; box-shadow:0 0 12px rgba(56,185,255,.7); }
+.panel,.metric-card,.summary-card,.filter-bar,.save-bar,.settings-panel,.ai-rail-panel,.scenario-control-panel,.scenario-result-panel,.alert-card,.transactions-panel,.chat-surface { border-color:rgba(85,170,255,.2); background:linear-gradient(145deg,rgba(8,28,61,.86),rgba(4,16,38,.8)); color:#eaf5ff; box-shadow:0 20px 55px rgba(0,5,18,.26),inset 0 1px rgba(151,211,255,.08); backdrop-filter:blur(20px) saturate(135%); }
+.panel:hover,.metric-card:hover { border-color:rgba(79,185,255,.4); box-shadow:0 24px 60px rgba(0,55,135,.18),inset 0 1px rgba(151,211,255,.12); }
+.health-panel,.summary-card:first-child,.forecast-stat.primary,.ai-welcome { border-color:rgba(72,174,255,.28); background:repeating-radial-gradient(circle at 82% 45%,transparent 0 35px,rgba(66,175,255,.075) 36px 37px),linear-gradient(135deg,#071a3d,#052c62 57%,#06152f); color:#f5fbff; box-shadow:0 25px 65px rgba(0,70,170,.22),inset 0 1px rgba(162,220,255,.14); }
+.health-panel p,.forecast-stat.primary p,.summary-card:first-child span,.ai-welcome p { color:#89a8c9; }
+.ask-button,.button-primary,.ai-input button,.switch.on,.auth-submit { background:linear-gradient(135deg,#168bff,#315cff); color:#fff; box-shadow:0 12px 30px rgba(17,112,255,.3),inset 0 1px rgba(255,255,255,.28); }
+.button-secondary,.date-button,.icon-button,.filter-button,.topbar-button { border-color:rgba(102,184,255,.22); background:rgba(8,35,71,.66); color:#b9d2eb; }
+input,textarea,select,.ai-input,.suggested-question { border-color:rgba(94,178,255,.2)!important; background:rgba(2,13,32,.72)!important; color:#e9f6ff!important; }
+input::placeholder,textarea::placeholder { color:#607b9d; }
+.answer-metric,.ai-data-source { border-color:rgba(86,169,247,.16); background:rgba(4,20,44,.48); }
+.recommendation,.recommendation-wide,.connection-notice,.api-key-connect-form,.webhook-setup-card { border-color:rgba(78,174,255,.2); background:rgba(13,45,86,.42); color:#a9c8e5; }
+.transaction-table tbody tr:hover,.alert-card:hover,.mode-option:hover,.suggested-question:hover { background:rgba(23,88,157,.26); }
+.mode-option.active,.alert-filter.active,.status-good { border-color:rgba(69,179,255,.32); background:rgba(17,92,171,.3); color:#c8eaff; }
+.route-continuation { border-color:rgba(73,177,255,.28); background:radial-gradient(circle at 82% 18%,rgba(43,153,255,.22),transparent 24%),linear-gradient(145deg,rgba(5,30,67,.96),rgba(3,14,35,.96)); color:#dff2ff; box-shadow:0 -20px 60px rgba(0,19,55,.2),inset 0 1px rgba(123,207,255,.1); }
+.route-continuation i { background:#168bff; color:#fff; }
+.transaction-drawer { border-left-color:rgba(83,172,255,.22); background:rgba(3,17,40,.96); color:#eaf6ff; box-shadow:-24px 0 60px rgba(0,0,0,.3); }
+.drawer-backdrop { background:rgba(0,5,16,.64); }
+.auth-page,.auth-loading { background:#020817; color:#dbeeff; }
+.auth-story { background:radial-gradient(circle at 74% 22%,rgba(27,138,255,.34),transparent 32%),linear-gradient(145deg,rgba(2,12,31,.96),rgba(4,43,91,.9)),url("/finpilot-header-backdrop.jpg") center/cover; }
+.auth-form-side { background:radial-gradient(circle at 85% 10%,rgba(30,132,255,.15),transparent 30%),#041127; }
+.auth-form-card h2,.auth-form-card label>span { color:#eaf6ff; }
+.auth-form-card>p,.auth-switch { color:#7f98b7; }
+.auth-form-card input { background:rgba(5,24,51,.78); border-color:rgba(88,170,248,.22); color:#f1f9ff; }
+.auth-switch a,.forgot-password-link { color:#49bdff; }
 @media (max-width: 620px) {
   .topbar .notification-button {
     display: none;
@@ -4166,29 +4460,21 @@ body {
   }
 }
 
-/* Final warm-glass theme lock. Keep this last so every product route matches. */
+/* Final Intelligence Network theme lock. Keep this last so every product route matches. */
 :root {
-  --signal: #f3e8dd;
-  --ink: #4d423a;
-  --muted-ink: #7f7064;
-  --canvas: #cdbdad;
-  --line: rgba(99, 80, 66, 0.2);
-  --card: rgba(255, 249, 243, 0.68);
+  --signal: #39bdff;
+  --ink: #eef7ff;
+  --muted-ink: #829bb8;
+  --canvas: #020817;
+  --line: rgba(83, 172, 255, 0.2);
+  --card: rgba(7, 24, 53, 0.78);
 }
 
 body {
   background:
-    radial-gradient(
-      circle at 88% 5%,
-      rgba(255, 249, 242, 0.85),
-      transparent 25%
-    ),
-    radial-gradient(
-      circle at 5% 82%,
-      rgba(167, 143, 122, 0.38),
-      transparent 28%
-    ),
-    linear-gradient(145deg, #c5b3a3, #e1d5ca 52%, #bda995);
+    radial-gradient(circle at 82% 9%, rgba(18, 128, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 8% 86%, rgba(0, 194, 255, 0.12), transparent 30%),
+    linear-gradient(145deg, #020713, #041a3d 52%, #020817);
   background-attachment: fixed;
   color: var(--ink);
 }
@@ -4200,28 +4486,22 @@ body {
 
 .sidebar {
   border-right: 1px solid rgba(255, 255, 255, 0.16);
-  background:
-    radial-gradient(
-      circle at 30% 10%,
-      rgba(255, 241, 226, 0.1),
-      transparent 25%
-    ),
-    linear-gradient(180deg, rgba(83, 70, 61, 0.98), rgba(57, 49, 44, 0.99));
-  color: #d7cbc0;
-  box-shadow: 18px 0 55px rgba(71, 52, 40, 0.13);
+  background: radial-gradient(circle at 30% 10%, rgba(39, 151, 255, 0.18), transparent 25%), linear-gradient(180deg, rgba(3, 18, 44, 0.99), rgba(2, 8, 23, 0.995));
+  color: #91a9c6;
+  box-shadow: 18px 0 55px rgba(0, 5, 18, 0.3);
 }
 
 .brand-mark {
-  background: #f4e9de;
-  color: #55483f;
+  background: linear-gradient(145deg, #49cfff, #176dff);
+  color: #ffffff;
   box-shadow:
-    0 10px 28px rgba(45, 34, 27, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+    0 10px 28px rgba(20, 120, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-brand strong em,
 .demo-badge {
-  color: #f5e9dd;
+  color: #dff4ff;
 }
 
 .sidebar-brand,
@@ -4231,13 +4511,13 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(255, 248, 241, 0.09);
+  background: rgba(37, 137, 233, 0.1);
 }
 
 .nav-item.active {
-  border-color: rgba(255, 255, 255, 0.58);
-  background: rgba(249, 239, 229, 0.94);
-  color: #55483f;
+  border-color: rgba(72, 181, 255, 0.45);
+  background: linear-gradient(100deg, rgba(20, 113, 220, 0.36), rgba(21, 75, 151, 0.2));
+  color: #f3f9ff;
   box-shadow:
     0 12px 30px rgba(42, 31, 24, 0.18),
     inset 0 1px rgba(255, 255, 255, 0.82);
@@ -4261,7 +4541,7 @@ body {
 .topbar,
 .topbar.compact {
   border-color: rgba(104, 84, 69, 0.18);
-  background: rgba(235, 224, 214, 0.86);
+  background: rgba(3, 15, 35, 0.86);
   box-shadow:
     0 14px 34px rgba(76, 56, 43, 0.08),
     inset 0 1px rgba(255, 255, 255, 0.65);
@@ -4281,16 +4561,16 @@ body {
 .welcome-row h1,
 .page-header h1 span,
 .welcome-row h1 span {
-  color: #4b4038;
+  color: #f3f9ff;
   text-shadow: 0 2px 30px rgba(255, 249, 242, 0.24);
 }
 
 .section-label {
-  color: #756457;
+  color: #7ba8d2;
 }
 
 .section-label::before {
-  background: #7b6757;
+  background: #39bdff;
 }
 
 .panel,
@@ -4304,11 +4584,11 @@ body {
 .scenario-result-panel,
 .alert-card,
 .transactions-panel {
-  border-color: rgba(255, 255, 255, 0.54);
-  background: rgba(255, 249, 243, 0.6);
+  border-color: rgba(85, 170, 255, 0.2);
+  background: linear-gradient(145deg, rgba(8, 28, 61, 0.88), rgba(4, 16, 38, 0.84));
   box-shadow:
-    0 18px 45px rgba(79, 59, 45, 0.08),
-    inset 0 1px rgba(255, 255, 255, 0.78);
+    0 18px 45px rgba(0, 5, 18, 0.28),
+    inset 0 1px rgba(151, 211, 255, 0.08);
   backdrop-filter: blur(18px) saturate(115%);
 }
 
@@ -4331,7 +4611,7 @@ body {
       rgba(255, 240, 224, 0.18),
       transparent 25%
     ),
-    linear-gradient(145deg, #736154, #4a4039);
+    linear-gradient(145deg, #071a3d, #052c62);
   color: #fffaf4;
   box-shadow:
     0 25px 55px rgba(64, 46, 35, 0.2),
@@ -4360,7 +4640,7 @@ body {
 .button-primary,
 .ai-input button,
 .switch.on {
-  background: #5c4e44;
+  background: linear-gradient(135deg, #168bff, #315cff);
   color: #fff5eb;
   box-shadow:
     0 10px 24px rgba(73, 53, 40, 0.16),
@@ -4373,8 +4653,8 @@ body {
 .button-secondary,
 .alert-filter {
   border-color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 249, 243, 0.48);
-  color: #695a4e;
+  background: rgba(8, 35, 71, 0.7);
+  color: #b9d2eb;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
 }
@@ -4386,7 +4666,7 @@ body {
 .ai-input,
 .ask-scenario textarea {
   border-color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 251, 247, 0.58);
+  background: rgba(2, 13, 32, 0.72);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.74);
 }
 
@@ -4395,7 +4675,7 @@ body {
 .result-stat,
 .connection-card {
   border-color: rgba(255, 255, 255, 0.58);
-  background: rgba(255, 250, 245, 0.52);
+  background: rgba(5, 25, 53, 0.7);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
 }
 
@@ -4464,7 +4744,7 @@ body {
 
 .transaction-drawer {
   border-left: 1px solid rgba(255, 255, 255, 0.62);
-  background: rgba(239, 227, 216, 0.94);
+  background: rgba(3, 17, 40, 0.97);
   box-shadow:
     -24px 0 60px rgba(72, 53, 40, 0.18),
     inset 1px 0 rgba(255, 255, 255, 0.62);

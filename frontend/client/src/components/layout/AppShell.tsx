@@ -19,6 +19,7 @@ import { Link, useLocation } from "wouter";
 import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchFinancialAlerts } from "@/services/api";
+import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 
 const navigation = [
   { href: "/dashboard", label: "Command Center", icon: LayoutDashboard },
@@ -197,7 +198,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <div className="source-status">
             <span>
               <i />
-              {session?.razorpay_connected ? "Razorpay Connected" : "Razorpay not connected"}
+              <RazorpayOfficialLink compact>{session?.razorpay_connected ? "Razorpay Connected" : "Razorpay not connected"}</RazorpayOfficialLink>
             </span>
             <small>
               {session?.razorpay_connected

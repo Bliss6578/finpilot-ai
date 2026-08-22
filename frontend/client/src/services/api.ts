@@ -174,6 +174,19 @@ export type AICFOResponse = {
   tools_used: string[];
   engine: string;
   llm?: { provider: "openai"; model: string; grounded: boolean; fallback: boolean };
+  agent?: {
+    plan: { domain: string; intent: string; period_days: number; tools: string[]; scenario_type?: string | null; scenario_parameters?: Record<string, number> | null };
+    confidence: number;
+    evidence_id?: string;
+    privacy: "processed_inside_finpilot";
+    data_completeness?: Record<string, boolean>;
+    reasoning_reference?: {
+      operations: string[];
+      similarity: number;
+      source: string;
+      policy: "operation_hint_only";
+    } | null;
+  };
   suggestions: string[];
   evidence: {
     tenant_scope: "authenticated_workspace";

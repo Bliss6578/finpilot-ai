@@ -132,7 +132,10 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
             assert "advertising" in body["answer"].lower() and "not connected" in body["answer"].lower()
             assert body["evidence"]["tenant_scope"] == "authenticated_workspace"
             assert body["conversation_id"]
-            assert body["engine"] == "deterministic_financial_tools"
+            assert body["engine"] == "finpilot_native_finance_agent"
+            assert body["evidence"]["tenant_scope"] == "authenticated_workspace"
+            assert body["agent"]["privacy"] == "processed_inside_finpilot"
+            assert body["agent"]["plan"]["tools"]
             assert len(body["suggestions"]) >= 3
 
             refund = owner.post(

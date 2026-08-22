@@ -6,7 +6,7 @@ import uuid
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
@@ -120,6 +120,7 @@ def issue_account_token(
     user: User,
     purpose: str,
     expires_in: timedelta,
+    background_tasks: BackgroundTasks | None = None,
 ) -> bool:
     now = datetime.now(timezone.utc)
     latest = db.scalar(
@@ -156,13 +157,20 @@ def issue_account_token(
     db.add(record)
     db.commit()
     path = "verify-email" if purpose == "verify_email" else "reset-password"
+    message = {
+        "to": user.email,
+        "name": user.full_name,
+        "purpose": purpose,
+        "url": f"{settings.frontend_origin}/{path}?token={raw_token}",
+    }
+    if background_tasks is not None:
+        # Account creation must not wait on a third-party email round trip.
+        # The token is already committed, so the verification link remains
+        # valid when delivery finishes after the response has been returned.
+        background_tasks.add_task(email_sender.send_account_link, **message)
+        return True
     try:
-        email_sender.send_account_link(
-            to=user.email,
-            name=user.full_name,
-            purpose=purpose,
-            url=f"{settings.frontend_origin}/{path}?token={raw_token}",
-        )
+        email_sender.send_account_link(**message)
     except Exception:
         db.delete(record)
         db.commit()
@@ -192,6 +200,7 @@ def valid_account_token(db: Session, raw_token: str, purpose: str) -> AccountTok
 def signup(
     payload: SignupRequest,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     email_sender: EmailSender = Depends(get_email_sender),
@@ -241,7 +250,13 @@ def signup(
     if settings.email_configured:
         try:
             issue_account_token(
-                db, settings, email_sender, user, "verify_email", timedelta(hours=24)
+                db,
+                settings,
+                email_sender,
+                user,
+                "verify_email",
+                timedelta(hours=24),
+                background_tasks=background_tasks,
             )
         except Exception:
             logger.exception("Unable to send signup verification email")

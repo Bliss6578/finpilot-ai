@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models import CFOConversation, CFOMessage, RazorpayConnection
 from app.services.ai_cfo import answer_cfo_question, build_cfo_context
 from app.services.financial_engine import financial_summary
-from app.services.llm_cfo import enhance_cfo_answer
+from app.services.finance_agent import run_finpilot_agent
 
 
 router = APIRouter(prefix="/api/ai-cfo", tags=["AI CFO"])
@@ -88,14 +88,7 @@ def _answer_and_store(db: Session, context: AuthContext, question: str, conversa
         db.commit()
         return result
     mode = financial_mode(db, context.business.id)
-    result = answer_cfo_question(db, context.business.id, mode, question)
-    result = enhance_cfo_answer(
-        settings=settings,
-        business_id=context.business.id,
-        question=question,
-        verified_result=result,
-        history=history,
-    )
+    result = run_finpilot_agent(db, context.business.id, mode, question)
     result["conversation_id"] = conversation.id
     db.add(CFOMessage(id=str(uuid4()), conversation_id=conversation.id, role="assistant", content=result["answer"], structured_content=result))
     db.commit()
