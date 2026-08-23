@@ -17,7 +17,7 @@ services:
           name: paymentor-postgres
           property: connectionString
       - key: FRONTEND_URL
-        sync: false
+        value: https://paymentor-ai.vercel.app
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
       - key: SESSION_COOKIE_NAME
