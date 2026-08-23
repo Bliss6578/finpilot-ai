@@ -73,14 +73,15 @@ def test_email_verification_and_password_reset_are_single_use() -> None:
             assert signup.status_code == 201
             assert sender.messages[-1]["purpose"] == "verify_email"
             verify_token = token_from(sender.messages[-1]["url"])
-            verification = client.post(
+            verification = second_device.post(
                 "/api/auth/email/verification/confirm",
                 headers=headers,
                 json={"token": verify_token},
             )
             assert verification.status_code == 200
-            assert verification.json()["user"]["email_verified"] is True
-            assert client.post(
+            assert verification.json() == {"status": "verified"}
+            assert second_device.get("/api/auth/me").status_code == 401
+            assert second_device.post(
                 "/api/auth/email/verification/confirm",
                 headers=headers,
                 json={"token": verify_token},

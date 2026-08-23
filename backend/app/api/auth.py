@@ -420,26 +420,19 @@ def request_email_verification(
 @router.post("/email/verification/confirm")
 def confirm_email_verification(
     payload: TokenRequest,
-    context: AuthContext = Depends(require_auth),
     db: Session = Depends(get_db),
     _: None = Depends(require_frontend_request),
-) -> dict:
+) -> dict[str, str]:
     token = valid_account_token(db, payload.token, "verify_email")
-    if token.user_id != context.user.id:
-        raise HTTPException(status_code=403, detail="This link belongs to another account")
+    user = db.get(User, token.user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=400, detail="This account is unavailable")
     token.used_at = datetime.now(timezone.utc)
-    context.user.email_verified = True
+    user.email_verified = True
     db.commit()
-    connection = db.scalar(
-        select(RazorpayConnection).where(RazorpayConnection.business_id == context.business.id)
-    )
-    return context_json(
-        context.user,
-        context.business,
-        context.membership,
-        bool(connection and connection.status == "connected"),
-        connection.mode if connection else None,
-    )
+    # Proving mailbox control must work across devices, but verification must
+    # never create an authenticated session in the browser that opened it.
+    return {"status": "verified"}
 
 
 @router.post("/password/forgot", status_code=status.HTTP_202_ACCEPTED)

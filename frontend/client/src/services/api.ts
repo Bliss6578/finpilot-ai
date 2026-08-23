@@ -323,7 +323,7 @@ export async function requestEmailVerification() {
 }
 export async function confirmEmailVerification(token: string) {
   return (
-    await api.post<AuthSession>("/api/auth/email/verification/confirm", { token })
+    await api.post<{ status: "verified" }>("/api/auth/email/verification/confirm", { token })
   ).data;
 }
 export async function requestPasswordReset(email: string) {

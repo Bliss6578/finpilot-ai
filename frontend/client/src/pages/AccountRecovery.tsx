@@ -73,16 +73,11 @@ export function ResetPasswordPage() {
 
 export function VerifyEmailPage() {
   const { session, loading, refresh } = useAuth();
-  const [, navigate] = useLocation();
   const started = useRef(false);
   const [state, setState] = useState<"working" | "success" | "error">("working");
   const [error, setError] = useState("");
   useEffect(() => {
     if (loading) return;
-    if (!session) {
-      navigate(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
-      return;
-    }
     if (started.current) return;
     started.current = true;
     const token = queryToken();
@@ -92,14 +87,15 @@ export function VerifyEmailPage() {
       return;
     }
     void confirmEmailVerification(token).then(async () => {
-      await refresh();
+      if (session) await refresh();
       setState("success");
     }).catch(reason => {
       setError(axios.isAxiosError(reason) ? reason.response?.data?.detail ?? "Unable to verify this email." : "Unable to verify this email.");
       setState("error");
     });
-  }, [loading, session, navigate, refresh]);
-  return <RecoveryShell>{state === "working" ? <RecoveryResult icon={<MailCheck />} title="Verifying your email" text="Confirming this secure link…" /> : state === "success" ? <RecoveryResult icon={<CheckCircle2 />} title="Email verified" text="Your Paymentor account is now verified." /> : <RecoveryResult icon={<MailCheck />} title="Verification failed" text={error} />}<Link href={state === "success" ? "/dashboard" : "/settings"} className="recovery-back">Continue to Paymentor</Link></RecoveryShell>;
+  }, [loading, session, refresh]);
+  const continueTo = state === "success" ? (session ? "/dashboard" : "/signin") : (session ? "/settings" : "/signin");
+  return <RecoveryShell>{state === "working" ? <RecoveryResult icon={<MailCheck />} title="Verifying your email" text="Confirming this secure link…" /> : state === "success" ? <RecoveryResult icon={<CheckCircle2 />} title="Email verified" text={session ? "Your Paymentor account is now verified." : "Your Paymentor account is verified. Sign in to continue."} /> : <RecoveryResult icon={<MailCheck />} title="Verification failed" text={error} />}<Link href={continueTo} className="recovery-back">Continue to Paymentor</Link></RecoveryShell>;
 }
 
 function RecoveryResult({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
