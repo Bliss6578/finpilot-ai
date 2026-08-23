@@ -39,7 +39,7 @@ class BusinessProfileUpdate(BaseModel):
     risk_tolerance: Optional[Literal["conservative", "moderate", "aggressive"]] = None
     ai_control_mode: Optional[Literal["observer", "advisor", "autopilot"]] = None
     notification_preferences: Optional[dict[str, bool]] = None
-    scenario_preferences: Optional[dict[str, float]] = None
+    scenario_preferences: Optional[dict[str, Any]] = None
 
 
 class ExpenseCreate(BaseModel):

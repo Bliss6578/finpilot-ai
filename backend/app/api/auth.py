@@ -90,6 +90,8 @@ def create_session(
     settings: Settings,
     user: User,
     business: Business,
+    *,
+    commit: bool = True,
 ) -> None:
     raw_token = secrets.token_urlsafe(48)
     db.add(
@@ -101,7 +103,8 @@ def create_session(
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.session_days),
         )
     )
-    db.commit()
+    if commit:
+        db.commit()
     response.set_cookie(
         key=settings.session_cookie_name,
         value=raw_token,
@@ -242,11 +245,14 @@ def signup(
         # foreign-key checks always see both parent records.
         db.flush()
         db.add(membership)
+        db.flush()
+        # Create the browser session in the same transaction as the account.
+        # This removes an avoidable production database round trip from signup.
+        create_session(response, db, settings, user, business, commit=False)
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Unable to create this account") from exc
-    create_session(response, db, settings, user, business)
     if settings.email_configured:
         try:
             issue_account_token(
@@ -282,19 +288,24 @@ def login(
         email = normalize_email(payload.email)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    user = db.scalar(select(User).where(User.email == email))
-    if user is None or not verify_password(payload.password, user.password_hash) or not user.is_active:
+    account = db.execute(
+        select(User, BusinessMember, Business, RazorpayConnection)
+        .join(BusinessMember, BusinessMember.user_id == User.id)
+        .join(Business, Business.id == BusinessMember.business_id)
+        .outerjoin(
+            RazorpayConnection,
+            RazorpayConnection.business_id == Business.id,
+        )
+        .where(User.email == email)
+        .order_by(BusinessMember.id)
+        .limit(1)
+    ).first()
+    if account is None:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    membership = db.scalar(
-        select(BusinessMember).where(BusinessMember.user_id == user.id).order_by(BusinessMember.id)
-    )
-    if membership is None:
-        raise HTTPException(status_code=403, detail="No business workspace is assigned")
-    business = db.get(Business, membership.business_id)
-    if business is None:
-        raise HTTPException(status_code=403, detail="Business workspace is unavailable")
+    user, membership, business, connection = account
+    if not verify_password(payload.password, user.password_hash) or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     create_session(response, db, settings, user, business)
-    connection = db.scalar(select(RazorpayConnection).where(RazorpayConnection.business_id == business.id))
     return context_json(
         user,
         business,

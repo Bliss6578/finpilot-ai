@@ -2,8 +2,9 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check, Database, Download, History, RefreshCw, Send, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 import { Panel, SectionLabel } from "@/components/paymentor-ui";
-import { askAICFO, downloadFinancialReport, fetchAICFOContext, fetchCFOConversation, fetchCFOConversations, type AICFOContext, type AICFOResponse } from "@/services/api";
+import { askAICFO, downloadFinancialReport, fetchAICFOContext, fetchCFOConversation, fetchCFOConversations, syncRazorpay, type AICFOContext, type AICFOResponse } from "@/services/api";
 import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 
 type Message =
@@ -22,6 +23,7 @@ export default function AICFO() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [context, setContext] = useState<AICFOContext | null>(null);
   const [thinking, setThinking] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [conversationId, setConversationId] = useState<string>();
   const [conversations, setConversations] = useState<{ id: string; title: string; updated_at: string }[]>([]);
   const [, setLocation] = useLocation();
@@ -38,6 +40,25 @@ export default function AICFO() {
   };
 
   const loadConversations = async () => { try { setConversations((await fetchCFOConversations()).items); } catch { setConversations([]); } };
+  const refreshContext = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const current = await fetchAICFOContext();
+      if (!current.razorpay_connected) {
+        setContext(current);
+        toast.error("Connect Razorpay first", { description: "Paymentor needs a connected workspace before it can refresh financial evidence." });
+        return;
+      }
+      const sync = await syncRazorpay();
+      await Promise.all([loadContext(), loadConversations()]);
+      toast.success("Financial context refreshed", { description: `${sync.records_processed} Razorpay record${sync.records_processed === 1 ? "" : "s"} processed.` });
+    } catch (reason: any) {
+      toast.error("Unable to refresh context", { description: reason?.response?.data?.detail ?? "The previous verified context is still available." });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   useEffect(() => { void loadContext(); void loadConversations(); }, []);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -83,7 +104,7 @@ export default function AICFO() {
         <h1>Ask your financial evidence.</h1>
         <p>Every answer is calculated inside the signed-in workspace from its Razorpay records and Paymentor forecast.</p>
       </div>
-      <button className="button-secondary" onClick={() => void loadContext()}><RefreshCw />Refresh context</button>
+      <button className="button-secondary" onClick={() => void refreshContext()} disabled={refreshing}><RefreshCw className={refreshing ? "spin" : ""} />{refreshing ? "Refreshing…" : "Refresh context"}</button>
     </div>
     <section className="ai-layout">
       <Panel className="chat-surface">
