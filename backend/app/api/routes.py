@@ -26,7 +26,7 @@ from app.services.razorpay import (
 from app.services.financial_engine import rebuild_daily_metrics, refresh_anomaly_alerts
 
 router = APIRouter(prefix="/api")
-logger = logging.getLogger("finpilot.ingestion")
+logger = logging.getLogger("paymentor.ingestion")
 
 
 def financial_mode(db: Session, business_id: str) -> str:

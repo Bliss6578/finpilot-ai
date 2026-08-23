@@ -47,7 +47,7 @@ def test_email_verification_and_password_reset_are_single_use() -> None:
         database_url="sqlite+pysqlite:///:memory:",
         frontend_url="http://localhost:3000/",
         resend_api_key="re_test_key",
-        email_from="FinPilot <onboarding@resend.dev>",
+        email_from="Paymentor <onboarding@resend.dev>",
     )
 
     def override_db():
@@ -57,7 +57,7 @@ def test_email_verification_and_password_reset_are_single_use() -> None:
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_email_sender] = lambda: sender
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as client, TestClient(app) as second_device:
             signup = client.post(

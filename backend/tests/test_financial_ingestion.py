@@ -53,7 +53,7 @@ def test_refund_and_settlement_webhooks_are_idempotent_and_tenant_scoped(monkeyp
         database_url="sqlite+pysqlite:///:memory:",
         razorpay_webhook_secret=secret,
     )
-    frontend_headers = {"X-FinPilot-Request": "1"}
+    frontend_headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as first_client, TestClient(app) as second_client:
             first_signup = first_client.post(
@@ -250,7 +250,7 @@ def test_payment_sync_succeeds_when_optional_test_collections_are_unavailable(mo
         database_url="sqlite+pysqlite:///:memory:",
         token_encryption_key="test-only-high-entropy-encryption-key",
     )
-    frontend_headers = {"X-FinPilot-Request": "1"}
+    frontend_headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as client:
             signup = client.post(

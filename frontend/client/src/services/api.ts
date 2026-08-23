@@ -23,7 +23,7 @@ export const api = axios.create({
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
-    "X-FinPilot-Request": "1",
+    "X-Paymentor-Request": "1",
   },
 });
 export type ApiTransaction = {
@@ -185,7 +185,7 @@ export type AICFOResponse = {
     plan: { domain: string; intent: string; period_days: number; tools: string[]; scenario_type?: string | null; scenario_parameters?: Record<string, number> | null };
     confidence: number;
     evidence_id?: string;
-    privacy: "processed_inside_finpilot";
+    privacy: "processed_inside_paymentor";
     data_completeness?: Record<string, boolean>;
     reasoning_reference?: {
       operations: string[];

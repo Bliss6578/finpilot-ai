@@ -18,7 +18,7 @@ PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?\d[\s-]?){8,15}(?!\d)")
 NUMBER_PATTERN = re.compile(r"(?<!\w)[₹$€£]?\s*-?\d[\d,]*(?:\.\d+)?%?")
 
 SYSTEM_INSTRUCTIONS = """You are Paymentor's AI CFO explanation layer.
-The FINPILOT_VERIFIED_RESULT object is calculated by tenant-scoped, deterministic
+The PAYMENTOR_VERIFIED_RESULT object is calculated by tenant-scoped, deterministic
 financial tools and is the only source of financial facts. Never change, invent,
 extrapolate, or silently omit its numbers. Do not call payment proceeds accounting
 profit unless complete expense data proves that claim. Clearly distinguish observed
@@ -31,7 +31,7 @@ finance, accounting, payments, cash flow, budgeting, pricing, tax concepts,
 fundraising, investment concepts, financial planning, risk, business scenarios,
 and questions about interpreting or safely using financial information. Answer any
 legitimate finance question. For hypothetical scenarios, state assumptions and use
-only numbers from the user's question or FINPILOT_VERIFIED_RESULT. Do not present a
+only numbers from the user's question or PAYMENTOR_VERIFIED_RESULT. Do not present a
 hypothetical as an observed fact. If the question is non_finance, set domain to
 non_finance; the application will return its fixed refusal.
 
@@ -150,7 +150,7 @@ def enhance_cfo_answer(
         "role": "user",
         "content": (
             f"CURRENT_QUESTION: {_redact_personal_data(question)}\n"
-            f"FINPILOT_VERIFIED_RESULT: {json.dumps(facts, ensure_ascii=False, default=str)}"
+            f"PAYMENTOR_VERIFIED_RESULT: {json.dumps(facts, ensure_ascii=False, default=str)}"
         ),
     })
     request = {
@@ -160,11 +160,11 @@ def enhance_cfo_answer(
         "store": False,
         "max_output_tokens": settings.openai_max_output_tokens,
         "safety_identifier": hashlib.sha256(business_id.encode()).hexdigest(),
-        "prompt_cache_key": "finpilot-ai-cfo-grounded-v1",
+        "prompt_cache_key": "paymentor-ai-cfo-grounded-v1",
         "text": {
             "format": {
                 "type": "json_schema",
-                "name": "finpilot_cfo_answer",
+                "name": "paymentor_cfo_answer",
                 "strict": True,
                 "schema": OUTPUT_SCHEMA,
             }

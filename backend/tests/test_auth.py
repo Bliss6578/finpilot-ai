@@ -39,7 +39,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
         with TestClient(app) as client:
             response = client.post(
                 "/api/auth/signup",
-                headers={"X-FinPilot-Request": "1"},
+                headers={"X-Paymentor-Request": "1"},
                 json={
                     "full_name": "Test Owner",
                     "business_name": "Test Business",
@@ -57,7 +57,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
             with TestClient(app) as other_device:
                 login_response = other_device.post(
                     "/api/auth/login",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "email": "owner@example.com",
                         "password": "correct horse battery staple",
@@ -66,7 +66,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
                 assert login_response.status_code == 200
                 revoke_response = client.post(
                     "/api/auth/sessions/revoke-others",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                 )
                 assert revoke_response.status_code == 200
                 assert revoke_response.json() == {"revoked_sessions": 1}
@@ -74,7 +74,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
 
                 assert other_device.post(
                     "/api/auth/login",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "email": "owner@example.com",
                         "password": "correct horse battery staple",
@@ -82,7 +82,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
                 ).status_code == 200
                 password_response = client.post(
                     "/api/auth/change-password",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "current_password": "correct horse battery staple",
                         "new_password": "a newer horse battery staple",
@@ -93,7 +93,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
                 assert other_device.get("/api/auth/me").status_code == 401
                 assert other_device.post(
                     "/api/auth/login",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "email": "owner@example.com",
                         "password": "correct horse battery staple",
@@ -101,7 +101,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
                 ).status_code == 401
                 assert other_device.post(
                     "/api/auth/login",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "email": "owner@example.com",
                         "password": "a newer horse battery staple",
@@ -111,7 +111,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
             with TestClient(app) as tenant_client:
                 tenant_signup = tenant_client.post(
                     "/api/auth/signup",
-                    headers={"X-FinPilot-Request": "1"},
+                    headers={"X-Paymentor-Request": "1"},
                     json={
                         "full_name": "Second Owner",
                         "business_name": "Second Business",
@@ -153,7 +153,7 @@ def test_signup_session_and_protected_tenant_routes() -> None:
                 assert [item["id"] for item in second_transactions["items"]] == ["pay_second_tenant"]
                 assert tenant_client.get("/api/transactions/pay_first_tenant").status_code == 404
 
-            logout_response = client.post("/api/auth/logout", headers={"X-FinPilot-Request": "1"})
+            logout_response = client.post("/api/auth/logout", headers={"X-Paymentor-Request": "1"})
             assert logout_response.status_code == 204
             assert client.get("/api/auth/me").status_code == 401
 

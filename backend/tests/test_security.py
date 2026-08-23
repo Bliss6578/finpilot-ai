@@ -60,11 +60,11 @@ def test_host_generated_secret_can_encrypt_oauth_tokens() -> None:
 
 
 def test_hosted_postgres_url_uses_psycopg3() -> None:
-    settings = Settings(database_url="postgresql://user:pass@db.internal/finpilot")
+    settings = Settings(database_url="postgresql://user:pass@db.internal/paymentor")
     assert settings.sqlalchemy_database_url.startswith("postgresql+psycopg://")
     assert Settings(app_env="production").cookie_samesite == "none"
 
 
 def test_frontend_origin_removes_trailing_slash() -> None:
-    settings = Settings(frontend_url="https://finpilot-ai-puce.vercel.app/")
-    assert settings.frontend_origin == "https://finpilot-ai-puce.vercel.app"
+    settings = Settings(frontend_url="https://paymentor-ai.vercel.app/")
+    assert settings.frontend_origin == "https://paymentor-ai.vercel.app"

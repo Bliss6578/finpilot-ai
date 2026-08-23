@@ -6,7 +6,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.FINPILOT_E2E_URL ?? "http://127.0.0.1:3000",
+    baseURL: process.env.PAYMENTOR_E2E_URL ?? "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

@@ -20,9 +20,9 @@ class AuthContext:
     membership: BusinessMember
 
 
-def require_frontend_request(x_finpilot_request: str = Header(default="")) -> None:
+def require_frontend_request(x_paymentor_request: str = Header(default="")) -> None:
     """Require a non-simple header so browsers must pass the configured CORS check."""
-    if x_finpilot_request != "1":
+    if x_paymentor_request != "1":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Request verification failed")
 
 

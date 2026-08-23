@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { RefreshCw } from "lucide-react";
-import { EmptyState, PageHeader, Panel } from "@/components/finpilot-ui";
+import { EmptyState, PageHeader, Panel } from "@/components/paymentor-ui";
 import { fetchFinancialAlerts, markFinancialAlertRead, type FinancialAlert } from "@/services/api";
 
 export default function Alerts() {

@@ -917,13 +917,13 @@
   position: absolute;
   z-index: 0;
   inset: -7%;
-  background-image: url("/finpilot-header-backdrop.jpg");
+  background-image: url("/paymentor-header-backdrop.jpg");
   background-position: center;
   background-size: cover;
   opacity: 0.72;
   filter: grayscale(1) sepia(1) hue-rotate(165deg) saturate(4) contrast(1.22) brightness(0.42);
   transform: scale(1.08) translate3d(-1.5%, 0, 0);
-  animation: finpilot-backdrop-drift 18s ease-in-out infinite alternate;
+  animation: paymentor-backdrop-drift 18s ease-in-out infinite alternate;
   will-change: transform, filter;
   pointer-events: none;
 }
@@ -950,7 +950,7 @@
   z-index: 2;
 }
 
-@keyframes finpilot-backdrop-drift {
+@keyframes paymentor-backdrop-drift {
   0% {
     transform: scale(1.08) translate3d(-1.5%, 0, 0);
     filter: saturate(0.82) contrast(1.04) brightness(0.88);
@@ -978,7 +978,7 @@
   }
 }
 
-/* Final FinPilot intelligence-network theme. Keep this last so legacy campaign
+/* Final Paymentor intelligence-network theme. Keep this last so legacy campaign
    palettes cannot leak into individual landing sections. */
 .landing {
   color: #eaf3ff;
@@ -1159,9 +1159,9 @@
   position: absolute;
   inset: 0;
   display: block;
-  background: url("/finpilot-header-backdrop.jpg") center / cover no-repeat;
+  background: url("/paymentor-header-backdrop.jpg") center / cover no-repeat;
   filter: contrast(1.12) brightness(1.12);
-  animation: finpilot-wave-ripple 7.5s ease-in-out infinite alternate;
+  animation: paymentor-wave-ripple 7.5s ease-in-out infinite alternate;
   will-change: transform;
 }
 
@@ -1207,7 +1207,7 @@
   animation-delay: -5.1s;
 }
 
-@keyframes finpilot-wave-ripple {
+@keyframes paymentor-wave-ripple {
   0% {
     transform: translate3d(-1.2%, 0.7%, 0) scale(1.08) skewX(-0.6deg);
   }
@@ -1678,11 +1678,11 @@
   position: absolute;
   z-index: 0;
   inset: -7%;
-  background: url("/finpilot-header-backdrop.jpg") center / cover no-repeat;
+  background: url("/paymentor-header-backdrop.jpg") center / cover no-repeat;
   opacity: 0.82;
   filter: saturate(0.82) contrast(1.04) brightness(0.88);
   transform: scale(1.08) translate3d(-1.5%, 0, 0);
-  animation: finpilot-backdrop-drift 18s ease-in-out infinite alternate;
+  animation: paymentor-backdrop-drift 18s ease-in-out infinite alternate;
   will-change: transform, filter;
   pointer-events: none;
 }

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Link2, LogOut, MailCheck, Plus, RefreshCw, ShieldCheck, Trash2, Unplug } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
+import { PageHeader, Panel, SectionLabel } from "@/components/paymentor-ui";
 import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 import {
   fetchRazorpayStatus,

@@ -2,7 +2,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check, Database, Download, History, RefreshCw, Send, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
-import { Panel, SectionLabel } from "@/components/finpilot-ui";
+import { Panel, SectionLabel } from "@/components/paymentor-ui";
 import { askAICFO, downloadFinancialReport, fetchAICFOContext, fetchCFOConversation, fetchCFOConversations, type AICFOContext, type AICFOResponse } from "@/services/api";
 import { RazorpayOfficialLink } from "@/components/RazorpayOfficialLink";
 
@@ -67,7 +67,7 @@ export default function AICFO() {
     void ask(draft);
   };
   const openConversation = async (id: string) => { const saved = await fetchCFOConversation(id); setConversationId(id); setMessages(saved.messages.map(item => item.role === "user" ? { role: "user" as const, text: item.content } : { role: "assistant" as const, response: item.structured_content })); };
-  const exportReport = async () => { const blob = await downloadFinancialReport(30); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "finpilot-30d-financial-report.csv"; anchor.click(); URL.revokeObjectURL(url); };
+  const exportReport = async () => { const blob = await downloadFinancialReport(30); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "paymentor-30d-financial-report.csv"; anchor.click(); URL.revokeObjectURL(url); };
   const lastAnswer = [...messages].reverse().find(
     (message): message is Extract<Message, { role: "assistant" }> => message.role === "assistant",
   );

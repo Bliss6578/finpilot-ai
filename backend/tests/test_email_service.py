@@ -40,7 +40,7 @@ def test_smtp_provider_sends_account_link_with_starttls(monkeypatch) -> None:
     monkeypatch.setattr("app.services.email.smtplib.SMTP", FakeSMTP)
     settings = Settings(
         email_provider="smtp",
-        email_from="FinPilot AI <ishita.hustlelab@gmail.com>",
+        email_from="Paymentor <ishita.hustlelab@gmail.com>",
         smtp_host="smtp.gmail.com",
         smtp_port=587,
         smtp_username="ishita.hustlelab@gmail.com",
@@ -52,7 +52,7 @@ def test_smtp_provider_sends_account_link_with_starttls(monkeypatch) -> None:
         to="owner@example.com",
         name="Owner",
         purpose="verify_email",
-        url="https://finpilot.example/verify-email?token=secret",
+        url="https://paymentor.example/verify-email?token=secret",
     )
 
     smtp = FakeSMTP.instances[0]
@@ -64,7 +64,7 @@ def test_smtp_provider_sends_account_link_with_starttls(monkeypatch) -> None:
     assert smtp.message["Subject"] == "Verify your Paymentor email"
     html_part = smtp.message.get_body(preferencelist=("html",))
     assert html_part is not None
-    assert "https://finpilot.example/verify-email?token=secret" in html_part.get_content()
+    assert "https://paymentor.example/verify-email?token=secret" in html_part.get_content()
 
 
 def test_incomplete_smtp_configuration_is_not_configured() -> None:

@@ -45,7 +45,7 @@ def test_razorpay_connection_and_ledger_are_shared_across_device_sessions(monkey
     )
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: settings
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     credentials = {
         "email": "two-devices@example.com",
         "password": "correct horse battery staple",
@@ -136,11 +136,11 @@ def test_owner_can_manage_encrypted_test_keys_and_tenant_webhook(monkeypatch) ->
         app_env="development",
         database_url="sqlite+pysqlite:///:memory:",
         token_encryption_key=encryption_key,
-        render_external_hostname="finpilot-api.example.com",
+        render_external_hostname="paymentor-api.example.com",
     )
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: settings
-    frontend_headers = {"X-FinPilot-Request": "1"}
+    frontend_headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as client:
             signup = client.post(
@@ -175,12 +175,12 @@ def test_owner_can_manage_encrypted_test_keys_and_tenant_webhook(monkeypatch) ->
             assert connected_payload["connected"] is True
             assert connected_payload["key_id"] == "rzp_test_firstmerchant"
             assert connected_payload["webhook_url"].startswith(
-                "https://finpilot-api.example.com/api/webhooks/razorpay/"
+                "https://paymentor-api.example.com/api/webhooks/razorpay/"
             )
             assert connected_payload["webhook_secret"]
             assert first_secret not in connected.text
             webhook_url = connected_payload["webhook_url"].replace(
-                "https://finpilot-api.example.com", ""
+                "https://paymentor-api.example.com", ""
             )
             original_webhook_secret = connected_payload["webhook_secret"]
 
@@ -313,11 +313,11 @@ def test_live_keys_require_confirmation_and_keep_test_and_live_ledgers_separate(
         app_env="development",
         database_url="sqlite+pysqlite:///:memory:",
         token_encryption_key="test-only-high-entropy-encryption-key",
-        render_external_hostname="finpilot-api.example.com",
+        render_external_hostname="paymentor-api.example.com",
     )
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: settings
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as client:
             signup = client.post(

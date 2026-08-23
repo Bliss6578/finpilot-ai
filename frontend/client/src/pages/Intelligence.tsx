@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
+import { EmptyState, PageHeader, Panel, SectionLabel } from "@/components/paymentor-ui";
 import { createApproval, decideApproval, fetchAnomalies, fetchApprovals, fetchRecommendations, fetchRevenueLeaks, fetchSettlementIntelligence, type AnomalyResult, type Approval, type Recommendation, type RevenueLeakResponse, type SettlementIntelligence } from "@/services/api";
 
 export default function Intelligence() {

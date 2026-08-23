@@ -42,7 +42,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* FinPilot Intelligence Network — final cross-product theme layer. */
+/* Paymentor Intelligence Network — final cross-product theme layer. */
 :root {
   --signal: #36a8ff;
   --ink: #eef7ff;
@@ -251,7 +251,7 @@ textarea::placeholder { color: #607b9d; }
 .auth-page,
 .auth-loading { background: #020817; color: #dbeeff; }
 .auth-story {
-  background: radial-gradient(circle at 74% 22%, rgba(27,138,255,.34), transparent 32%), linear-gradient(145deg, rgba(2,12,31,.96), rgba(4,43,91,.9)), url("/finpilot-header-backdrop.jpg") center / cover;
+  background: radial-gradient(circle at 74% 22%, rgba(27,138,255,.34), transparent 32%), linear-gradient(145deg, rgba(2,12,31,.96), rgba(4,43,91,.9)), url("/paymentor-header-backdrop.jpg") center / cover;
 }
 .auth-form-side { background: radial-gradient(circle at 85% 10%, rgba(30,132,255,.15), transparent 30%), #041127; }
 .auth-form-card h2,
@@ -293,14 +293,14 @@ textarea::placeholder { color: #607b9d; }
   padding: 46px clamp(34px, 5vw, 82px);
   background:
     linear-gradient(145deg, rgba(74, 59, 49, 0.94), rgba(96, 78, 65, 0.77)),
-    url("/finpilot-header-backdrop.jpg") center / cover;
+    url("/paymentor-header-backdrop.jpg") center / cover;
   color: #fffaf4;
 }
 .auth-story::after {
   content: "";
   position: absolute;
   inset: -15%;
-  background: url("/finpilot-header-backdrop.jpg") center / 125% auto;
+  background: url("/paymentor-header-backdrop.jpg") center / 125% auto;
   opacity: 0.12;
   mix-blend-mode: screen;
   animation: auth-wave 14s ease-in-out infinite alternate;
@@ -1204,9 +1204,9 @@ a {
   font-size: 10px;
 }
 .spin {
-  animation: finpilot-spin 0.8s linear infinite;
+  animation: paymentor-spin 0.8s linear infinite;
 }
-@keyframes finpilot-spin {
+@keyframes paymentor-spin {
   to {
     transform: rotate(360deg);
   }
@@ -3560,7 +3560,7 @@ input::placeholder,textarea::placeholder { color:#607b9d; }
 .transaction-drawer { border-left-color:rgba(83,172,255,.22); background:rgba(3,17,40,.96); color:#eaf6ff; box-shadow:-24px 0 60px rgba(0,0,0,.3); }
 .drawer-backdrop { background:rgba(0,5,16,.64); }
 .auth-page,.auth-loading { background:#020817; color:#dbeeff; }
-.auth-story { background:radial-gradient(circle at 74% 22%,rgba(27,138,255,.34),transparent 32%),linear-gradient(145deg,rgba(2,12,31,.96),rgba(4,43,91,.9)),url("/finpilot-header-backdrop.jpg") center/cover; }
+.auth-story { background:radial-gradient(circle at 74% 22%,rgba(27,138,255,.34),transparent 32%),linear-gradient(145deg,rgba(2,12,31,.96),rgba(4,43,91,.9)),url("/paymentor-header-backdrop.jpg") center/cover; }
 .auth-form-side { background:radial-gradient(circle at 85% 10%,rgba(30,132,255,.15),transparent 30%),#041127; }
 .auth-form-card h2,.auth-form-card label>span { color:#eaf6ff; }
 .auth-form-card>p,.auth-switch { color:#7f98b7; }
@@ -3794,7 +3794,7 @@ input::placeholder,textarea::placeholder { color:#607b9d; }
   }
 }
 
-/* FinPilot motion system: restrained, functional, and reduced-motion safe. */
+/* Paymentor motion system: restrained, functional, and reduced-motion safe. */
 html {
   scroll-behavior: smooth;
 }
@@ -3843,15 +3843,15 @@ html {
 .metric-bottom polyline {
   stroke-dasharray: 150;
   stroke-dashoffset: 150;
-  animation: finpilot-line-draw 0.9s 0.28s cubic-bezier(0.22, 1, 0.36, 1)
+  animation: paymentor-line-draw 0.9s 0.28s cubic-bezier(0.22, 1, 0.36, 1)
     forwards;
 }
 .micro-progress i {
   transform-origin: left;
-  animation: finpilot-bar-grow 0.72s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: paymentor-bar-grow 0.72s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .forecast-callout {
-  animation: finpilot-callout 0.48s 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: paymentor-callout 0.48s 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .button-primary,
 .button-secondary,
@@ -3900,12 +3900,12 @@ html {
 .insight-card:hover .insight-icon {
   transform: translateY(-2px) scale(1.05);
 }
-@keyframes finpilot-line-draw {
+@keyframes paymentor-line-draw {
   to {
     stroke-dashoffset: 0;
   }
 }
-@keyframes finpilot-bar-grow {
+@keyframes paymentor-bar-grow {
   from {
     transform: scaleX(0);
   }
@@ -3913,7 +3913,7 @@ html {
     transform: scaleX(1);
   }
 }
-@keyframes finpilot-callout {
+@keyframes paymentor-callout {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -3965,7 +3965,7 @@ html {
   }
 }
 
-/* FinPilot continuum: the product UI shares the landing page's editorial system. */
+/* Paymentor continuum: the product UI shares the landing page's editorial system. */
 :root {
   --signal: #d8ff43;
   --ink: #111310;

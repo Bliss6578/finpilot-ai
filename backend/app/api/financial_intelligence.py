@@ -306,5 +306,5 @@ def download_financial_report(days: int = Query(30, ge=7, le=365), context: Auth
         writer.writerow([key.replace("_paise", "").replace("_", " ").title(), _money(summary["current"][key])])
     writer.writerow(["Financial health score", summary["health"]["score"]])
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = f'attachment; filename="finpilot-{days}d-financial-report.csv"'
+    response.headers["Content-Disposition"] = f'attachment; filename="paymentor-{days}d-financial-report.csv"'
     return response

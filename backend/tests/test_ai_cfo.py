@@ -28,7 +28,7 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
         app_env="development",
         database_url="sqlite+pysqlite:///:memory:",
     )
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as owner, TestClient(app) as other_owner:
             signup = owner.post(
@@ -132,9 +132,9 @@ def test_ai_cfo_uses_only_authenticated_workspace_evidence() -> None:
             assert "advertising" in body["answer"].lower() and "not connected" in body["answer"].lower()
             assert body["evidence"]["tenant_scope"] == "authenticated_workspace"
             assert body["conversation_id"]
-            assert body["engine"] == "finpilot_native_finance_agent"
+            assert body["engine"] == "paymentor_native_finance_agent"
             assert body["evidence"]["tenant_scope"] == "authenticated_workspace"
-            assert body["agent"]["privacy"] == "processed_inside_finpilot"
+            assert body["agent"]["privacy"] == "processed_inside_paymentor"
             assert body["agent"]["plan"]["tools"]
             assert len(body["suggestions"]) >= 3
 

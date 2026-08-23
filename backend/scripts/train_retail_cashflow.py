@@ -36,7 +36,7 @@ def find_workbook(source: Path, temporary_directory: Path) -> Path:
 
 
 def train(source: Path) -> dict:
-    with TemporaryDirectory(prefix="finpilot-retail-") as temp:
+    with TemporaryDirectory(prefix="paymentor-retail-") as temp:
         workbook_path = find_workbook(source, Path(temp))
         workbook = load_workbook(workbook_path, read_only=True, data_only=True)
         daily = defaultdict(lambda: {"sales": 0.0, "returns": 0.0})
@@ -126,13 +126,13 @@ def train(source: Path) -> dict:
         "limitations": [
             "The source contains sales and cancellations, not bank balances or operating expenses.",
             "INR scale and expense assumptions are synthetic demo inputs, not learned facts.",
-            "This artifact is a global demo prior and is never trained on a FinPilot tenant's private data.",
+            "This artifact is a global demo prior and is never trained on a Paymentor tenant's private data.",
         ],
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train FinPilot's explainable retail cash-flow prior")
+    parser = argparse.ArgumentParser(description="Train Paymentor's explainable retail cash-flow prior")
     parser.add_argument("source", type=Path, help="Path to online+retail+ii.zip or online_retail_II.xlsx")
     parser.add_argument(
         "--output",

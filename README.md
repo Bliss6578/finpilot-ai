@@ -62,7 +62,7 @@ database and deterministic financial tools.
 
 ## Grounded AI CFO
 
-`POST /api/v1/cfo/chat` calculates answers from the authenticated business and its active Test/Live mode. Conversations and structured answers persist per workspace. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, recorded expenses, cash policy, and the FinPilot cash-flow model. Responses identify the deterministic tools used, evidence sources, classifications, recommended actions, and contextual follow-up questions.
+`POST /api/v1/cfo/chat` calculates answers from the authenticated business and its active Test/Live mode. Conversations and structured answers persist per workspace. It compares the latest 30 days with the preceding 30 days across payments, refunds, Razorpay fees, settlements, recorded expenses, cash policy, and the Paymentor cash-flow model. Responses identify the deterministic tools used, evidence sources, classifications, recommended actions, and contextual follow-up questions.
 
 The CFO deliberately calls Razorpay-derived revenue “net payment proceeds,” not accounting profit. It will not invent causes involving advertising, payroll, inventory, tax, or products until those data sources are connected. Tenant-isolation tests verify that one business cannot appear in another business's answer.
 

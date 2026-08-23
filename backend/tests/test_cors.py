@@ -4,13 +4,13 @@ from app.main import app
 
 
 def test_vercel_preview_origin_can_call_auth_api() -> None:
-    origin = "https://finpilot-pwv2xtyge-ishita22.vercel.app"
+    origin = "https://paymentor-cve71hvfl-ishita22.vercel.app"
     response = TestClient(app).options(
         "/api/auth/login",
         headers={
             "Origin": origin,
             "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "content-type,x-finpilot-client",
+            "Access-Control-Request-Headers": "content-type,x-paymentor-client",
         },
     )
 
@@ -23,7 +23,7 @@ def test_unrelated_origin_is_rejected() -> None:
     response = TestClient(app).options(
         "/api/auth/login",
         headers={
-            "Origin": "https://not-finpilot.example",
+            "Origin": "https://not-paymentor.example",
             "Access-Control-Request-Method": "POST",
         },
     )

@@ -1,4 +1,4 @@
-# FinPilot AI — Design Direction
+# Paymentor AI — Design Direction
 
 ## Three Visual Approaches
 
@@ -19,11 +19,11 @@
 1. **Decisions before reporting.** Cash risk, forecast direction, and recommended next actions take precedence over historical data.
 2. **A composed hierarchy.** Large working surfaces are punctuated by small precision panels, so every page has a clear reading order.
 3. **Quiet credibility.** Fine borders, low-elevation surfaces, simple tonal fields, and restrained use of colour communicate reliable financial software.
-4. **Data earns colour.** Indigo signals the FinPilot intelligence layer; green, amber, and red only communicate financial state or change.
+4. **Data earns colour.** Indigo signals the Paymentor intelligence layer; green, amber, and red only communicate financial state or change.
 
 ### Color Philosophy
 
-The working canvas is a cool mist (`#F7F8FA`) that gives white analysis surfaces definition without heaviness. A graphite-black navigation rail creates a stable visual anchor. **Signal Indigo (`#635BFF`)** is FinPilot’s ownable control colour: it appears on the active route, key CTAs, and forecast intelligence. Status hues are intentionally softened and reserved for variance, risk, and health conditions so they retain meaning.
+The working canvas is a cool mist (`#F7F8FA`) that gives white analysis surfaces definition without heaviness. A graphite-black navigation rail creates a stable visual anchor. **Signal Indigo (`#635BFF`)** is Paymentor’s ownable control colour: it appears on the active route, key CTAs, and forecast intelligence. Status hues are intentionally softened and reserved for variance, risk, and health conditions so they retain meaning.
 
 ### Layout Paradigm
 
@@ -49,13 +49,13 @@ Use transitions only to acknowledge state changes: cards lift 2px over 180ms, dr
 
 ### Brand Essence
 
-**FinPilot AI is the decision cockpit for Razorpay businesses that need to see the next financial move before it becomes a problem.**
+**Paymentor AI is the decision cockpit for Razorpay businesses that need to see the next financial move before it becomes a problem.**
 
 **Personality:** vigilant, composed, incisive.
 
 ### Brand Voice
 
-FinPilot speaks with direct financial clarity: concise, evidence-led, and action-oriented. Headlines identify a financial situation; CTAs make the next decision explicit.
+Paymentor speaks with direct financial clarity: concise, evidence-led, and action-oriented. Headlines identify a financial situation; CTAs make the next decision explicit.
 
 > “Your cash buffer is likely to dip below reserve on Sep 12.”
 
@@ -71,11 +71,11 @@ The logo is a compact **pilot beacon**: a precise indigo square with a rising wh
 
 ## Style Decisions
 
-All product pages will reinforce the Flight Deck philosophy: one decision story at a time, crisp operational hierarchy, and a visually obvious distinction between actual performance and FinPilot’s forward-looking intelligence.
+All product pages will reinforce the Flight Deck philosophy: one decision story at a time, crisp operational hierarchy, and a visually obvious distinction between actual performance and Paymentor’s forward-looking intelligence.
 
 - The graphite control rail is persistent on every desktop product route; the top bar is only utility chrome.
 - Every page opening states a financial situation or a decision to make, rather than greeting the user or repeating a navigation label.
-- Signal Indigo is exclusive to FinPilot intelligence, active navigation, and primary decisions. Operational colours indicate financial state and risk only.
+- Signal Indigo is exclusive to Paymentor intelligence, active navigation, and primary decisions. Operational colours indicate financial state and risk only.
 
 ## Validation Notes
 

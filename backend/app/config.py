@@ -5,9 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "development"
-    database_url: str = "sqlite:///./finpilot.db"
+    database_url: str = "sqlite:///./paymentor.db"
     frontend_url: str = "http://localhost:3000"
-    frontend_origin_regex: str = r"^https://finpilot-[a-z0-9-]+-ishita22\.vercel\.app$"
+    frontend_origin_regex: str = r"^https://paymentor-[a-z0-9-]+-ishita22\.vercel\.app$"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     razorpay_redirect_uri: str = ""
     razorpay_oauth_mode: str = "test"
     token_encryption_key: str = ""
-    session_cookie_name: str = "finpilot_session"
+    session_cookie_name: str = "paymentor_session"
     session_days: int = 30
     render_external_hostname: str = ""
     email_provider: str = "resend"

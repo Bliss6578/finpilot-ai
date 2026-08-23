@@ -62,7 +62,7 @@
   border-radius: 38px;
   background:
     linear-gradient(130deg, rgba(63, 55, 50, .92), rgba(87, 74, 65, .78)),
-    url("/finpilot-header-backdrop.jpg") center / cover;
+    url("/paymentor-header-backdrop.jpg") center / cover;
   color: #fffaf4;
 }
 .public-hero::after { content: ""; position: absolute; inset: auto -8% -55% auto; width: 540px; height: 540px; border: 1px solid rgba(255,255,255,.14); border-radius: 50%; box-shadow: 0 0 0 75px rgba(255,255,255,.035), 0 0 0 150px rgba(255,255,255,.025); }

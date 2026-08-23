@@ -38,7 +38,7 @@ def test_cashflow_uses_only_tenant_financials() -> None:
         app_env="development",
         database_url="sqlite+pysqlite:///:memory:",
     )
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as first_client, TestClient(app) as second_client:
             first_signup = first_client.post(

@@ -1,4 +1,4 @@
-# FinPilot production runbook
+# Paymentor production runbook
 
 ## Required controls
 

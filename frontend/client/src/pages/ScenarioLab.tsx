@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ScenarioChart } from "@/components/finance-charts";
-import { PageHeader, Panel, SectionLabel } from "@/components/finpilot-ui";
+import { PageHeader, Panel, SectionLabel } from "@/components/paymentor-ui";
 import { currency } from "@/data/mockData";
 import { fetchBusinessProfile, simulateScenario, updateBusinessProfile, type ScenarioResult } from "@/services/api";
 

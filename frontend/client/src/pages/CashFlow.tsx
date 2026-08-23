@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { CircleAlert, FlaskConical, RefreshCw, Sparkles } from "lucide-react";
 import { CashFlowChart } from "@/components/finance-charts";
-import { PageHeader, Panel, SectionLabel, StatusPill } from "@/components/finpilot-ui";
+import { PageHeader, Panel, SectionLabel, StatusPill } from "@/components/paymentor-ui";
 import { currency } from "@/data/mockData";
 import { fetchCashflow, type CashflowResponse } from "@/services/api";
 import { useDateRange } from "@/contexts/DateRangeContext";

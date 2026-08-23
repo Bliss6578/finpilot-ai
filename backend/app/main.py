@@ -50,4 +50,4 @@ def readiness() -> dict:
 @app.get("/api/metrics")
 def metrics() -> dict:
     """Low-cardinality service counters for uptime monitoring."""
-    return {"service": "finpilot-api", **metrics_snapshot()}
+    return {"service": "paymentor-api", **metrics_snapshot()}

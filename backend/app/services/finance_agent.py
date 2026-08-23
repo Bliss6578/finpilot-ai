@@ -234,7 +234,7 @@ def _scenario_answer(summary: dict[str, Any], plan: AgentPlan) -> dict[str, Any]
     }
 
 
-def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) -> dict[str, Any]:
+def run_paymentor_agent(db: Session, business_id: str, mode: str, question: str) -> dict[str, Any]:
     """Plan and answer a finance question using only this tenant's verified tools."""
     plan = plan_financial_question(question)
     if plan.domain == "non_finance":
@@ -242,10 +242,10 @@ def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) 
             "answer": "I can't answer this.",
             "recommendation": "Ask Paymentor a question related to finance or your business finances.",
             "classification": "fact", "metrics": [], "insights": [], "actions": [],
-            "tools_used": list(plan.tools), "engine": "finpilot_native_finance_agent",
+            "tools_used": list(plan.tools), "engine": "paymentor_native_finance_agent",
             "suggestions": ["What is my net revenue?", "How much runway do I have?", "What is affecting payment success?"],
             "evidence": {"tenant_scope": "authenticated_workspace", "mode": mode, "period_days": plan.period_days, "latest_data_at": None, "cashflow_source": "workspace_financial_records", "sources": []},
-            "agent": {"plan": asdict(plan), "confidence": 1.0, "privacy": "processed_inside_finpilot"},
+            "agent": {"plan": asdict(plan), "confidence": 1.0, "privacy": "processed_inside_paymentor"},
         }
 
     reasoning_reference = route_reasoning(question)
@@ -263,7 +263,7 @@ def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) 
             verified["metrics"] = []
     learned_tools = ("finqa_symbolic_reasoning_router",) if reasoning_reference else ()
     verified["tools_used"] = list(dict.fromkeys((*plan.tools, *learned_tools, *verified.get("tools_used", []))))
-    verified["engine"] = "finpilot_native_finance_agent"
+    verified["engine"] = "paymentor_native_finance_agent"
     completeness = summary["data_completeness"]
     available = sum(bool(value) for value in completeness.values())
     confidence = round(0.45 + available / max(len(completeness), 1) * 0.5, 2)
@@ -273,7 +273,7 @@ def run_finpilot_agent(db: Session, business_id: str, mode: str, question: str) 
         "confidence": confidence,
         "data_completeness": completeness,
         "evidence_id": hashlib.sha256(trace_source.encode()).hexdigest()[:16],
-        "privacy": "processed_inside_finpilot",
+        "privacy": "processed_inside_paymentor",
         "reasoning_reference": reasoning_reference,
     }
     verified.pop("_llm_context", None)

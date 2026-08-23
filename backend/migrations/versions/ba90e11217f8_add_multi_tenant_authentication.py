@@ -101,7 +101,7 @@ def upgrade() -> None:
 
     op.execute(
         "INSERT INTO businesses (id, name, slug, currency, created_at) "
-        "VALUES ('demo-business', 'FinPilot Demo', 'finpilot-demo', 'INR', CURRENT_TIMESTAMP)"
+        "VALUES ('demo-business', 'Paymentor Demo', 'paymentor-demo', 'INR', CURRENT_TIMESTAMP)"
     )
     op.add_column("sync_runs", sa.Column("business_id", sa.String(length=64), nullable=True))
     op.execute("UPDATE sync_runs SET business_id = 'demo-business' WHERE business_id IS NULL")

@@ -10,7 +10,7 @@ import {
   MoneyRow,
   Panel,
   SectionLabel,
-} from "@/components/finpilot-ui";
+} from "@/components/paymentor-ui";
 import {
   currency,
   transactions as mockTransactions,

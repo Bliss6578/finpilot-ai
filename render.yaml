@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: finpilot-api
+    name: paymentor-api
     runtime: python
     plan: free
     region: singapore
@@ -14,20 +14,20 @@ services:
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: finpilot-postgres
+          name: paymentor-postgres
           property: connectionString
       - key: FRONTEND_URL
         sync: false
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
       - key: SESSION_COOKIE_NAME
-        value: finpilot_session
+        value: paymentor_session
       - key: SESSION_DAYS
         value: "30"
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: FinPilot <onboarding@resend.dev>
+        value: Paymentor <onboarding@resend.dev>
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
@@ -42,10 +42,10 @@ services:
         value: test
 
 databases:
-  - name: finpilot-postgres
+  - name: paymentor-postgres
     plan: free
     region: singapore
-    databaseName: finpilot
-    user: finpilot
+    databaseName: paymentor
+    user: paymentor
     postgresMajorVersion: "18"
     ipAllowList: []

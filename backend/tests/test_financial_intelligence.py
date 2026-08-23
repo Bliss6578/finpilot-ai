@@ -30,7 +30,7 @@ def test_profile_expenses_summary_scenario_and_tenant_isolation() -> None:
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: Settings(app_env="development", database_url="sqlite+pysqlite:///:memory:")
-    headers = {"X-FinPilot-Request": "1"}
+    headers = {"X-Paymentor-Request": "1"}
     try:
         with TestClient(app) as owner, TestClient(app) as stranger:
             owner.post("/api/auth/signup", headers=headers, json={"full_name": "Owner", "business_name": "Alpha", "email": "alpha@example.com", "password": "correct horse battery staple"})

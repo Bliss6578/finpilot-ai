@@ -225,7 +225,7 @@ def signup(
             slug = f"{base_slug}-{suffix}"
         business = Business(id=str(uuid.uuid4()), name=payload.business_name.strip(), slug=slug)
         db.add(business)
-    elif business.name == "FinPilot Demo":
+    elif business.name == "Paymentor Demo":
         business.name = payload.business_name.strip()
         business.slug = slugify(payload.business_name)
 
