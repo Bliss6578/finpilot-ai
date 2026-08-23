@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from html import escape
 from email.message import EmailMessage
+from email.utils import parseaddr
 import smtplib
 
 import httpx
@@ -45,7 +46,37 @@ class EmailSender:
         if provider == "resend":
             self._send_resend(to=to, subject=subject, html=html)
             return
+        if provider == "brevo":
+            self._send_brevo(to=to, name=name, subject=subject, html=html)
+            return
         raise RuntimeError(f"Unsupported email provider: {provider or 'empty'}")
+
+    def send_notification(self, *, to: str, name: str, category: str, url: str) -> None:
+        """Send a privacy-preserving notice; financial evidence stays in Paymentor."""
+        if not self.settings.email_configured:
+            raise RuntimeError("Email delivery is not configured")
+        safe_name = escape(name)
+        safe_category = escape(category)
+        safe_url = escape(url, quote=True)
+        subject = f"Paymentor notification: {category}"
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;color:#241f1b">
+          <p style="font-size:13px;letter-spacing:2px;color:#897a6d">PAYMENTOR NOTIFICATION</p>
+          <h1 style="font-size:30px">Review {safe_category}</h1>
+          <p>Hi {safe_name},</p><p>Your Paymentor workspace has new activity in a notification category you enabled.</p>
+          <p style="margin:28px 0"><a href="{safe_url}" style="background:#1677ff;color:#fff;padding:14px 20px;border-radius:10px;text-decoration:none">Open secure workspace</a></p>
+          <p style="font-size:12px;color:#776d65">Financial values and customer details are intentionally not included in email.</p>
+        </div>
+        """
+        provider = self.settings.email_provider.strip().lower()
+        if provider == "brevo":
+            self._send_brevo(to=to, name=name, subject=subject, html=html)
+        elif provider == "resend":
+            self._send_resend(to=to, subject=subject, html=html)
+        elif provider == "smtp":
+            self._send_smtp(to=to, subject=subject, html=html)
+        else:
+            raise RuntimeError(f"Unsupported email provider: {provider or 'empty'}")
 
     def _send_resend(self, *, to: str, subject: str, html: str) -> None:
         response = httpx.post(
@@ -59,6 +90,28 @@ class EmailSender:
                 "to": [to],
                 "subject": subject,
                 "html": html,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+
+    def _send_brevo(self, *, to: str, name: str, subject: str, html: str) -> None:
+        sender_name, sender_email = parseaddr(self.settings.email_from)
+        if not sender_email:
+            raise RuntimeError("EMAIL_FROM must contain a valid sender email")
+        response = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": self.settings.brevo_api_key,
+                "accept": "application/json",
+                "content-type": "application/json",
+            },
+            json={
+                "sender": {"name": sender_name or "Paymentor", "email": sender_email},
+                "to": [{"name": name, "email": to}],
+                "subject": subject,
+                "htmlContent": html,
+                "tags": ["paymentor-transactional"],
             },
             timeout=15,
         )

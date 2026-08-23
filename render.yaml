@@ -24,10 +24,14 @@ services:
         value: paymentor_session
       - key: SESSION_DAYS
         value: "30"
+      - key: EMAIL_PROVIDER
+        value: brevo
       - key: RESEND_API_KEY
         sync: false
+      - key: BREVO_API_KEY
+        sync: false
       - key: EMAIL_FROM
-        value: Paymentor <onboarding@resend.dev>
+        value: Paymentor <ishita.hustlelab@gmail.com>
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET

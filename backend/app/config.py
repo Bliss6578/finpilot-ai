@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     render_external_hostname: str = ""
     email_provider: str = "resend"
     resend_api_key: str = ""
+    brevo_api_key: str = ""
     email_from: str = "Paymentor <onboarding@resend.dev>"
     smtp_host: str = ""
     smtp_port: int = 587
@@ -89,6 +90,8 @@ class Settings(BaseSettings):
             )
         if provider == "resend":
             return self.resend_api_key.startswith("re_") and bool(self.email_from)
+        if provider == "brevo":
+            return bool(self.brevo_api_key and self.email_from)
         return False
 
     @property

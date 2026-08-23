@@ -24,6 +24,7 @@ from app.services.razorpay import (
     verify_webhook_signature,
 )
 from app.services.financial_engine import rebuild_daily_metrics, refresh_anomaly_alerts
+from app.services.notification_email import send_financial_alert_emails
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger("paymentor.ingestion")
@@ -452,6 +453,7 @@ def process_webhook(event_id: int) -> None:
             event.status = "processed"
             event.processed_at = datetime.now(timezone.utc)
             db.commit()
+            send_financial_alert_emails(event.business_id, [item.id for item in created_alerts])
             logger.info("webhook_processed", extra={"business_id": event.business_id, "event_type": event.event_type, "alerts_created": len(created_alerts)})
         except Exception as exc:
             event.status = "failed"

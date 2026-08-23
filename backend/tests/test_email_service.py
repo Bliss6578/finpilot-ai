@@ -70,3 +70,32 @@ def test_smtp_provider_sends_account_link_with_starttls(monkeypatch) -> None:
 def test_incomplete_smtp_configuration_is_not_configured() -> None:
     settings = Settings(email_provider="smtp", smtp_host="smtp.gmail.com")
     assert settings.email_configured is False
+
+
+def test_brevo_provider_sends_transactional_email(monkeypatch) -> None:
+    captured: dict = {}
+
+    class Response:
+        def raise_for_status(self) -> None:
+            return None
+
+    def fake_post(url: str, **kwargs):
+        captured.update({"url": url, **kwargs})
+        return Response()
+
+    monkeypatch.setattr("app.services.email.httpx.post", fake_post)
+    settings = Settings(
+        email_provider="brevo",
+        brevo_api_key="xkeysib-test",
+        email_from="Paymentor <ishita.hustlelab@gmail.com>",
+    )
+    assert settings.email_configured is True
+    EmailSender(settings).send_account_link(
+        to="owner@example.com", name="Owner", purpose="verify_email",
+        url="https://paymentor-ai.vercel.app/verify-email?token=secret",
+    )
+    assert captured["url"] == "https://api.brevo.com/v3/smtp/email"
+    assert captured["headers"]["api-key"] == "xkeysib-test"
+    assert captured["json"]["sender"] == {"name": "Paymentor", "email": "ishita.hustlelab@gmail.com"}
+    assert captured["json"]["to"] == [{"name": "Owner", "email": "owner@example.com"}]
+    assert captured["json"]["subject"] == "Verify your Paymentor email"
